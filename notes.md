@@ -8,6 +8,7 @@ Basically: Don't use the BIMserver as a whole: Use only selected services from a
 * [BIMbots auth doc](https://github.com/opensourceBIM/BIM-Bot-services/wiki/Building-a-client-application#32-navigate-to-authorization-url)
 * [FreeCAD BIMServer plugin](https://github.com/yorikvanhavre/WebTools/blob/master/BIMServer.py)
 * [Revit plugin example](https://www.youtube.com/watch?v=CX2F21NFI3A)
+* [Reading and writing json to/from a file](https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/)
 
 ### General structure
 
