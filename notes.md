@@ -167,11 +167,11 @@ Basically: Don't use the BIMserver as a whole: Use only selected services from a
 
 ### Questions
 
-* Paid services too? (The Revit interface has price range controls
-* Filter services? By which critetia?
+* Paid services too? (The Revit interface has price range controls). R - There can be BIM Bots online that are free to use; but there can also be BIM Bots that require a subscription of some kind.
+* Filter services? By which critetia? R - That could be handy in the long run when there are thousands of BIM Bots available. At this moment not a high priority.
 * Any more service I could test with? (IFC validating, etc)
-* Autorization only by redirect url? What about unreachable apps? (Firewall, etc) What about tokens?
-* BIMBots logo?
+* Autorization only by redirect url? What about unreachable apps? (Firewall, etc) What about tokens? - Need to investigate
+* BIMBots logo? R -  [logo1](http://bimbots.org/wp-content/uploads/sites/4/2017/08/BIM-Bots-viewer.png),[logo2](http://bimbots.org/wp-content/uploads/sites/4/2017/08/BIM-Bots-validationchecker.png)
 
 ### Interface:
 
