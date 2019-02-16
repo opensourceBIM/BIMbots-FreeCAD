@@ -23,8 +23,8 @@
 #*                                                                         *
 #***************************************************************************
 
-# Homepage: https://github.com/yorikvanhavre/BIMbots-FreeCAD
-
+# Homepage: https://github.com/opensourceBIM/BIMbots-FreeCAD
+# That repo contains useful implementation notes too
 
 from __future__ import print_function # this code is compatible with python 2 and 3
 
@@ -39,32 +39,135 @@ else:
 
 """This module provides tools to communicate with BIMbots services, and
 a FreeCAD GUI, that autoruns if this module is executed as a FreeCAD macro.
-If run from the command line, it prints available BIMbots services."""
+If run from the command line, it prints a summary of available BIMbots services."""
 
 
-#############   Configuration
+#############   Configuration defaults
 
+# the following values are not written in the config file:
+CONFIG_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens - TODO use something nicer for windows? Use FreeCAD?
+VERBOSE = True # If True, debug messages are printed. If not, everything fails silently
 
-DEFAULT_SERVICES_URL = "https://raw.githubusercontent.com/opensourceBIM/BIMserver-Repository/master/serviceproviders.json"
-TIMEOUT = 5 # connection timeout, in seconds
-AUTH_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens - TODO use something nicer for windows? Use FreeCAD?
-VERBOSE = False # If True, debug messages are printed. If not, everything fails silently
+# the following values can be overwritten in the config file:
+SERVICES_URL = "https://raw.githubusercontent.com/opensourceBIM/BIMserver-Repository/master/serviceproviders.json"
+CONNECTION_TIMEOUT = 5 # connection timeout, in seconds
 CLIENT_NAME = "FreeCAD"
 CLIENT_DESCRIPTION = "The FreeCAD BIMbots plugin"
 CLIENT_URL = "https://github.com/opensourceBIM/BIMbots-FreeCAD"
-CLIENT_PNG = "https://www.freecadweb.org/images/logo.png" #bimserver doesn't seem to like this image... Why, OH WHY?
-REDIRECT_URL = "SHOW_CODE" # keep "SHOW_CODE" here
+CLIENT_ICON = "https://www.freecadweb.org/images/logo.png" #bimserver doesn't seem to like this image... Why, OH WHY?
+
+
+#############   Config file management
+
+
+def read_config():
+
+    "Reads the config file, if found, and returns a dict of its contents"
+
+    # Structure of the config file. It's a json file:
+    #
+    # { "config" :
+    #   {
+    #      "services_url": "https://server.com/serviceproviders.json", # a json giving urls of service providers
+    #      "connection_timeout": 5, # the timeout when trying to connect to online services
+    #      "client_name": "FreeCAD", # the name under which this application will be known by BIMServers
+    #      "client_description": "The best BIM app out there", # a description shown on BIMServers authentication pages and user settings
+    #      "client_icon": "https://server.com/image.png",  # a PNG icon for this application
+    #      "client_url": "https://myserver.comg",  # a URL for this application, shown on BIMservers
+    #   }
+    #   "services" :
+    #   [
+    #     { "id": 3014734, # the id number of the service, returned by get_services(). Warning, this is an int, not a string
+    #       "name": "IFC Analytics Service" # the name of the service, returned by get_services()
+    #       "provider_url": "http://localhost:8082/services", # the listUrl of the server returned by get_service_providers (ie. one by server)
+    #       "service_url": "http://localhost:8082/services/3014734", # the specific URL given by the auth procedure. Only present if authenticated
+    #       "token": "XXXXXXXXXXX", # the token  given by the auth procedure. Only present if authenticated
+    #     }, ...
+    #   ]
+    # }
+
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE) as json_file:
+            if VERBOSE:
+                print("Reading config from",CONFIG_FILE)
+            data = json.load(json_file)
+            return data
+    elif VERBOSE:
+        print("No config file found at",CONFIG_FILE)
+    return {'config':{},'services':[]}
+
+
+def get_config_value(value):
+    
+    "Gets the given config value from the config file, or defaults to the default value if existing"
+    
+    config  = read_config()
+    if value in config['config']:
+        return config['config'][value]
+    elif value.upper() in globals():
+        return globals()[value.upper()]
+    else:
+        if VERBOSE:
+            print("Value",value,"not found in config or default settings")
+        return None
+
+
+def save_config(config):
+
+    "Saves the given dict to the config file. Overwrites everything, be careful!"
+
+    if os.path.exists(CONFIG_FILE) and VERBOSE:
+        print("Config file",CONFIG_FILE,"not found. Creating a new one.")
+    with open(CONFIG_FILE, 'w') as json_file:
+        json.dump(config, json_file)
+        if VERBOSE:
+            print("Saved config to",CONFIG_FILE)
+
+
+def save_authentication(provider_url,service_id,service_name,service_url,token):
+
+    "Saved the given service authentication data to the config file"
+
+    config = read_config()
+    for service in config['services']:
+        if (service['provider_url'] == provider_url) and (service['id'] == service_id):
+                service['name'] = service_name
+                service['service_url'] = service_url
+                service['token'] = token
+                break
+    else:
+        data = {
+            "provider_url": provider_url,
+            "id": service_id,
+            "name": service_name,
+            "service_url": service_url,
+            "token": token
+        }
+        config['services'].append(data)
+    if VERBOSE:
+        print("Saving config:",config)
+    save_config(config)
+
+
+def save_default_config():
+    
+    "Saves the default settings to the config file"
+
+    config = read_config()
+    for setting in ["services_url","connection_timeout","client_name","client_description","client_icon","client_url"]:
+        config['config'][setting] = globals()[setting.upper()]
+    save_config(config)
 
 
 #############   Generic BIMbots interface
 
 
-def get_service_providers(url=DEFAULT_SERVICES_URL):
-    
+def get_service_providers(url=get_config_value("default_services_url")):
+
     "returns a list of dicts {name,desciption,listUrl} of BIMbots services obtained from the given url"
 
     try:
-        response = requests.get(url,timeout=TIMEOUT)
+        response = requests.get(url,timeout=get_config_value("connection_timeout"))
     except:
         if VERBOSE: print("Error: unable to connect to service providers list at",url)
         return []
@@ -80,11 +183,11 @@ def get_service_providers(url=DEFAULT_SERVICES_URL):
 
 
 def get_services(url):
-    
+
     "returns a list of dicts of service plugins available from a given service provider url"
-    
+
     try:
-        response = requests.get(url,timeout=TIMEOUT)
+        response = requests.get(url,timeout=get_config_value("connection_timeout"))
     except:
         if VERBOSE: print("Error: unable to connect to service provider at",url)
         return []
@@ -100,29 +203,27 @@ def get_services(url):
 
 
 def is_authenticated(provider_url,service_id):
-    
+
     "returns True if the service associated with the given provider url and service id has already been authenticated"
-    
-    if os.path.exists(AUTH_FILE):
-        with open(AUTH_FILE) as json_file:  
-            data = json.load(json_file)
-            for service in data['services']:
-                if service['listUrl'] == provider_url:
-                    if service['id'] == service_id:
-                        return True
+
+    data = read_config()
+    for service in data['services']:
+        if (service['provider_url'] == provider_url) and (service['id'] == service_id):
+            if 'token' in service:
+                return True
     return False
 
 
 def authenticate_step_1(register_url):
-    
+
     "Sends an authentication request to the given server"
 
     data = {
-        "redirect_url": REDIRECT_URL,
-        "client_name": CLIENT_NAME,
-        "client_description": CLIENT_DESCRIPTION,
-        "client_icon": CLIENT_PNG,
-        "client_url": CLIENT_URL,
+        "redirect_url": "SHOW_CODE",
+        "client_name": get_config_value("client_name"),
+        "client_description": get_config_value("client_description"),
+        "client_icon": get_config_value("client_icon"),
+        "client_url": get_config_value("client_url"),
         "type": "pull"
     }
 
@@ -143,7 +244,7 @@ def authenticate_step_1(register_url):
 
 
 def authenticate_step_2(authorization_url,client_id,service_name):
-    
+
     "Opens the authorization url in an external browser"
 
 
@@ -151,7 +252,7 @@ def authenticate_step_2(authorization_url,client_id,service_name):
         "auth_type": "service",
         "client_id": client_id,
         "response_type": "code",
-        "redirect_uri": REDIRECT_URL,
+        "redirect_uri": "SHOW_CODE",
         "state": "{ \"_serviceName\" : \"" + service_name + "\" }"
     }
     url = authorization_url + "?" + urlencode(data)
@@ -162,20 +263,39 @@ def authenticate_step_2(authorization_url,client_id,service_name):
         print(url)
         return False
     else:
-        print(url)
         return webbrowser.open(url)
+
+
+def print_services():
+
+    "Prints a list of available (and reachable) services"
+
+    found = False
+    providers = get_service_providers()
+    for provider in providers:
+        services = get_services(provider['listUrl'])
+        for service in services:
+            if not found:
+                print("Available services:")
+                found = True
+            print("Checking",provider['listUrl'],service['id'])
+            authenticated = is_authenticated(provider['listUrl'],service['id'])
+            print("Service",service['name'],"from",service['provider'],"- authenticated" if authenticated else "- not authenticated")
+    if not found:
+        print("No available service found")
+
 
 
 #############  FreeCAD GUI mode
 
 
 def launchGui():
-    
+
     "Launches the FreeCAD bimbots GUI"
-    
+
     import FreeCAD,FreeCADGui
     print("FreeCAD GUI not yet implemented!)")
-    
+
 
 
 #############   Detect FreeCAD and run as a macro
@@ -195,12 +315,7 @@ else:
 
 
 if __name__ == "__main__":
-    
-    print("Available services:")
-    providers = get_service_providers()
-    for provider in providers:
-        services = get_services(provider['listUrl'])
-        for service in services:
-            authenticated = is_authenticated(provider['listUrl'],service['id'])
-            print("Service",service['name'],"from",service['provider'],"- authenticated" if authenticated else "- not authenticated")
-        
+
+    print_services()
+
+
