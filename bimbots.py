@@ -28,23 +28,35 @@
 
 from __future__ import print_function # this code is compatible with python 2 and 3
 
-import os, requests, json
+import os, sys, requests, json
+
+if sys.version_info.major < 3:
+    import urllib
+    from urllib import urlencode
+else:
+    import urllib.parse
+    from urllib.parse import urlencode
 
 """This module provides tools to communicate with BIMbots services, and
 a FreeCAD GUI, that autoruns if this module is executed as a FreeCAD macro.
 If run from the command line, it prints available BIMbots services."""
 
 
-### Configuration
+#############   Configuration
 
 
 DEFAULT_SERVICES_URL = "https://raw.githubusercontent.com/opensourceBIM/BIMserver-Repository/master/serviceproviders.json"
 TIMEOUT = 5 # connection timeout, in seconds
-AUTH_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens
-VERBOSE = False # If True, debug messages are printed
+AUTH_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens - TODO use something nicer for windows? Use FreeCAD?
+VERBOSE = False # If True, debug messages are printed. If not, everything fails silently
+CLIENT_NAME = "FreeCAD"
+CLIENT_DESCRIPTION = "The FreeCAD BIMbots plugin"
+CLIENT_URL = "https://github.com/opensourceBIM/BIMbots-FreeCAD"
+CLIENT_PNG = "https://www.freecadweb.org/images/logo.png" #bimserver doesn't seem to like this image... Why, OH WHY?
+REDIRECT_URL = "SHOW_CODE" # keep "SHOW_CODE" here
 
 
-### Generic BIMbots interface
+#############   Generic BIMbots interface
 
 
 def get_service_providers(url=DEFAULT_SERVICES_URL):
@@ -101,7 +113,85 @@ def is_authenticated(provider_url,service_id):
     return False
 
 
-### Simple test output, if run from the command line
+def authenticate_step_1(register_url):
+    
+    "Sends an authentication request to the given server"
+
+    data = {
+        "redirect_url": REDIRECT_URL,
+        "client_name": CLIENT_NAME,
+        "client_description": CLIENT_DESCRIPTION,
+        "client_icon": CLIENT_PNG,
+        "client_url": CLIENT_URL,
+        "type": "pull"
+    }
+
+    try:
+        response = requests.post(url=register_url,json=data)
+    except:
+        if VERBOSE: print("Error: unable to send authentication request for ",register_url)
+        return None
+    if response.ok:
+        try:
+            return response.json()
+        except:
+            if VERBOSE: print("Error: unable to read authentication data from",register_url)
+            return None
+    else:
+        if VERBOSE: print("Error: unable to fetch authentication data from",register_url)
+        return None
+
+
+def authenticate_step_2(authorization_url,client_id,service_name):
+    
+    "Opens the authorization url in an external browser"
+
+
+    data = {
+        "auth_type": "service",
+        "client_id": client_id,
+        "response_type": "code",
+        "redirect_uri": REDIRECT_URL,
+        "state": "{ \"_serviceName\" : \"" + service_name + "\" }"
+    }
+    url = authorization_url + "?" + urlencode(data)
+    try:
+        import webbrowser
+    except:
+        print("Error: Unable to launch web browser. Please paste the following URL in your web browser:")
+        print(url)
+        return False
+    else:
+        print(url)
+        return webbrowser.open(url)
+
+
+#############  FreeCAD GUI mode
+
+
+def launchGui():
+    
+    "Launches the FreeCAD bimbots GUI"
+    
+    import FreeCAD,FreeCADGui
+    print("FreeCAD GUI not yet implemented!)")
+    
+
+
+#############   Detect FreeCAD and run as a macro
+
+
+try:
+    import FreeCAD
+except:
+    print("FreeCAD not available")
+else:
+    if FreeCAD.GuiUp:
+        # Running inside FreeCAD
+        launchGui()
+
+
+#############   Simple test output, if run from the command line
 
 
 if __name__ == "__main__":

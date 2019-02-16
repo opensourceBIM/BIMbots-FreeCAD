@@ -138,9 +138,11 @@ Basically: Don't use the BIMserver as a whole: Use only selected services from a
     }
 ```
 
+Not sure what the response values are for yet, apparently they are not needed to use bimbots services.
+
 * When using BIMserver as a service provider (B), you can also do this step manually by using BIMvie.ws. Go to Server | OAuth Server and click "Manually register server"
 * After receiving this response, user needs to go online to authorize. Open a web browser at the authorizationUrl - HTTP GET with arguments:
-  * redirect_uri: URI of the page the user will be redirected to after successful/failed authorization. You can use the special value "SHOW_CODE" if your application is not webbased and you want the user to copy&paste the code to your application.
+  * redirect_uri: URI of the page the user will be redirected to after successful/failed authorization. You can use the special value "SHOW_CODE" if your application is not webbased and you want the user to copy&paste the code to your application. WARNING - HERE IT'S URI, NOT URL
   * response_type: "code"
   * client_id: "client_id"
   * auth_type: "service" // Because we want to run a service, other types exist
