@@ -1,0 +1,173 @@
+{
+    "classifications": [
+        {
+            "references": [
+                {
+                    "name": "NO_CLASSIFICATION_REFERENCE",
+                    "numberOfObjects": 4
+                }
+            ],
+            "name": "NO_CLASSIFICATION"
+        }
+    ],
+    "aggregations": {
+        "completeModel": {
+
+        },
+        "perType": {
+            "IfcSite": {
+                "averageNumberOfRelations": 2,
+                "averageNumberOfProperties": 0,
+                "averageNumberOfPsets": 0,
+                "numberOfObjects": 1
+            },
+            "IfcWall": {
+                "averageNumberOfTriangles": 12,
+                "averageNumberOfRelations": 0,
+                "averageNumberOfProperties": 0,
+                "averageNumberOfPsets": 0,
+                "numberOfObjects": 1
+            },
+            "IfcBuildingStorey": {
+                "averageNumberOfRelations": 1,
+                "averageNumberOfProperties": 0,
+                "averageNumberOfPsets": 0,
+                "numberOfObjects": 1
+            },
+            "IfcBuilding": {
+                "averageNumberOfRelations": 2,
+                "averageNumberOfProperties": 0,
+                "averageNumberOfPsets": 0,
+                "numberOfObjects": 1
+            }
+        },
+        "topTenMostComplexObjects": [
+            {
+                "volumeM3": 0.400000000000008,
+                "name": "Wall",
+                "numberOfTriangles": 12,
+                "trianglesPerM3": 30.0,
+                "guid": "0T$pXcCuKHwQyL093rt3ko",
+                "type": "IfcWall"
+            },
+            {
+                "guid": "0U1KiqCuKHwQyL093rt3ko",
+                "type": "IfcBuilding",
+                "name": "Default Building",
+                "trianglesPerM3": 0.0
+            },
+            {
+                "guid": "0U1HEACuKHwQyL093rt3ko",
+                "type": "IfcSite",
+                "name": "Default Site",
+                "trianglesPerM3": 0.0
+            },
+            {
+                "guid": "0U1NVkCuKHwQyL093rt3ko",
+                "type": "IfcBuildingStorey",
+                "name": "Default Storey",
+                "trianglesPerM3": 0.0
+            }
+        ],
+        "topTenMostProperties": [
+            {
+                "numberOfProperties": 0,
+                "guid": "0T$pXcCuKHwQyL093rt3ko",
+                "type": "IfcWall",
+                "name": "Wall"
+            },
+            {
+                "numberOfProperties": 0,
+                "guid": "0U1KiqCuKHwQyL093rt3ko",
+                "type": "IfcBuilding",
+                "name": "Default Building"
+            },
+            {
+                "numberOfProperties": 0,
+                "guid": "0U1HEACuKHwQyL093rt3ko",
+                "type": "IfcSite",
+                "name": "Default Site"
+            },
+            {
+                "numberOfProperties": 0,
+                "guid": "0U1NVkCuKHwQyL093rt3ko",
+                "type": "IfcBuildingStorey",
+                "name": "Default Storey"
+            }
+        ]
+    },
+    "project": {
+        "units": [
+            {
+                "unitType": "LENGTHUNIT",
+                "prefix": "NULL",
+                "name": "METRE"
+            },
+            {
+                "unitType": "AREAUNIT",
+                "prefix": "NULL",
+                "name": "SQUARE_METRE"
+            },
+            {
+                "unitType": "VOLUMEUNIT",
+                "prefix": "NULL",
+                "name": "CUBIC_METRE"
+            },
+            {
+                "unitType": "PLANEANGLEUNIT",
+                "name": "DEGREE"
+            }
+        ],
+        "guid": "2cbe6e88_33a0_4b80_a96",
+        "name": "Unnamed",
+        "sites": [
+            {
+                "buildings": [
+                    {
+                        "guid": "0U1KiqCuKHwQyL093rt3ko",
+                        "storeys": [
+                            {
+                                "spaces": [
+
+                                ],
+                                "guid": "0U1NVkCuKHwQyL093rt3ko",
+                                "name": "Default Storey",
+                                "totalNumberOfObjects": 0
+                            }
+                        ],
+                        "name": "Default Building"
+                    }
+                ],
+                "guid": "0U1HEACuKHwQyL093rt3ko",
+                "name": "Default Site"
+            }
+        ]
+    },
+    "header": {
+        "preProcessorVersion": "",
+        "description": [
+            ""
+        ],
+        "author": [
+            ""
+        ],
+        "timeStamp": 1550498433000,
+        "filename": "",
+        "originatingSystem": "BIMserver",
+        "implementationLevel": "2;1",
+        "organization": [
+            ""
+        ],
+        "schemaVersion": "IFC2X3",
+        "authorization": ""
+    },
+    "materials": [
+        {
+            "name": "NO_MATERIAL",
+            "nrOfProducts": 4
+        }
+    ],
+    "checks": {
+        "hasCubeNearZero": false
+    }
+}

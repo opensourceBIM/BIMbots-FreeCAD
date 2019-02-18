@@ -13,10 +13,10 @@ It (will) also works as a [FreeCAD](http://www.freecadweb.org) macro. If launche
 * Retrive a list of BIMbots services
 * Authenticate with any of the services
 * Keep authentication credentials in a config file
+* Test services (send a minimal IFC file, get the results)
 
 #### To do:
 
-* Test services (send a minimal IFC file, get the results)
 * Finish the interface mock-up (QDesigner)
 * Design icons
 * Implement the FreeCAD-dependent code

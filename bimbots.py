@@ -68,7 +68,7 @@ def read_config():
     #
     # { "config" :
     #   {
-    #      "services_url": "https://server.com/serviceproviders.json", # a json giving urls of service providers
+    #      "default_services_url": "https://server.com/serviceproviders.json", # a json giving urls of service providers
     #      "connection_timeout": 5, # the timeout when trying to connect to online services
     #      "client_name": "FreeCAD", # the name under which this application will be known by BIMServers
     #      "client_description": "The best BIM app out there", # a description shown on BIMServers authentication pages and user settings
@@ -98,9 +98,9 @@ def read_config():
 
 
 def get_config_value(value):
-    
+
     "Gets the given config value from the config file, or defaults to the default value if existing"
-    
+
     config  = read_config()
     if value in config['config']:
         return config['config'][value]
@@ -149,12 +149,24 @@ def save_authentication(provider_url,service_id,service_name,service_url,token):
     save_config(config)
 
 
+def get_service_config(provider_url,service_id):
+
+    "returns the service associated with the given provider url and service id if it has already been authenticated"
+
+    data = read_config()
+    for service in data['services']:
+        if (service['provider_url'] == provider_url) and (service['id'] == service_id):
+            if 'token' in service:
+                return service
+    return None
+
+
 def save_default_config():
-    
+
     "Saves the default settings to the config file"
 
     config = read_config()
-    for setting in ["services_url","connection_timeout","client_name","client_description","client_icon","client_url"]:
+    for setting in ["default_services_url","connection_timeout","client_name","client_description","client_icon","client_url"]:
         config['config'][setting] = globals()[setting.upper()]
     save_config(config)
 
@@ -169,16 +181,19 @@ def get_service_providers(url=get_config_value("default_services_url")):
     try:
         response = requests.get(url,timeout=get_config_value("connection_timeout"))
     except:
-        if VERBOSE: print("Error: unable to connect to service providers list at",url)
+        if VERBOSE:
+            print("Error: unable to connect to service providers list at",url)
         return []
     if response.ok:
         try:
             return response.json()['active']
         except:
-            if VERBOSE: print("Error: unable to read service providers list from",url)
+            if VERBOSE:
+                print("Error: unable to read service providers list from",url)
             return []
     else:
-        if VERBOSE: print("Error: unable to fetch service providers list from",url)
+        if VERBOSE:
+            print("Error: unable to fetch service providers list from",url)
         return []
 
 
@@ -189,29 +204,20 @@ def get_services(url):
     try:
         response = requests.get(url,timeout=get_config_value("connection_timeout"))
     except:
-        if VERBOSE: print("Error: unable to connect to service provider at",url)
+        if VERBOSE:
+            print("Error: unable to connect to service provider at",url)
         return []
     if response.ok:
         try:
             return response.json()['services']
         except:
-            if VERBOSE: print("Error: unable to read services list from",url)
+            if VERBOSE:
+                print("Error: unable to read services list from",url)
             return []
     else:
-        if VERBOSE: print("Error: unable to fetch services list from",url)
+        if VERBOSE:
+            print("Error: unable to fetch services list from",url)
         return []
-
-
-def is_authenticated(provider_url,service_id):
-
-    "returns True if the service associated with the given provider url and service id has already been authenticated"
-
-    data = read_config()
-    for service in data['services']:
-        if (service['provider_url'] == provider_url) and (service['id'] == service_id):
-            if 'token' in service:
-                return True
-    return False
 
 
 def authenticate_step_1(register_url):
@@ -228,18 +234,22 @@ def authenticate_step_1(register_url):
     }
 
     try:
+        # using json= instead of data= provides headers automatically
         response = requests.post(url=register_url,json=data)
     except:
-        if VERBOSE: print("Error: unable to send authentication request for ",register_url)
+        if VERBOSE:
+            print("Error: unable to send authentication request for ",register_url)
         return None
     if response.ok:
         try:
             return response.json()
         except:
-            if VERBOSE: print("Error: unable to read authentication data from",register_url)
+            if VERBOSE:
+                print("Error: unable to read authentication data from",register_url)
             return None
     else:
-        if VERBOSE: print("Error: unable to fetch authentication data from",register_url)
+        if VERBOSE:
+            print("Error: unable to fetch authentication data from",register_url)
         return None
 
 
@@ -278,11 +288,61 @@ def print_services():
             if not found:
                 print("Available services:")
                 found = True
-            print("Checking",provider['listUrl'],service['id'])
-            authenticated = is_authenticated(provider['listUrl'],service['id'])
-            print("Service",service['name'],"from",service['provider'],"- authenticated" if authenticated else "- not authenticated")
+            authenticated = get_service_config(provider['listUrl'],service['id'])
+            if authenticated:
+                print("Service",service['name'],"from",service['provider'],"- authenticated as",authenticated['provider_url'],", service",authenticated['id'])
+            else:
+                print("Service",service['name'],"from",service['provider'],"- not authenticated")
     if not found:
         print("No available service found")
+
+
+def send_test_payload(provider_url,service_id):
+
+    "Sends a test IFC file to the given service, returns the json response as a dict"
+
+    service = get_service_config(provider_url,service_id)
+    if service:
+        headers = {
+            "Input-Type": "IFC_STEP_2X3TC1",
+            "Token": service['token'],
+            "Accept-Flow": "ASYNC_WS, SYNC" # preferred workflow - To be tested
+        }
+        #if "Context-Id" in service: # this model has already been uploaded before. TODO - This should be stored per model, not per service
+        #    headers['Context-Id'] = service['Context-Id']
+        payload_file = os.path.join(os.path.dirname(__file__),"test payload.ifc")
+        if os.path.exists(payload_file):
+            with open(payload_file) as file_stream:
+                data = file_stream.read()
+        else:
+            if VERBOSE:
+                print("Error: unable to load test payload IFC file. Aborting")
+            return {}
+        try:
+            response = requests.post(service['service_url'],headers=headers,data=data,timeout=get_config_value("connection_timeout"))
+        except:
+            if VERBOSE:
+                print("Error: unable to connect to service provider at",service['service_url'])
+            return {}
+        if response.ok:
+            try:
+                res = response.json()
+            except:
+                if VERBOSE:
+                    print("Error: unable to read response from service",service_id,"at",service['service_url'])
+                return {}
+            else:
+                if ("message" in res) and ("error" in res['message'].lower()) and ("code" in res):
+                    print("This payload has been rejected by the server, with the following error: Error code",res['code'],":",res['message'])
+                return res
+        else:
+            if VERBOSE:
+                print("Error: unable to fetch response from service",service_id,"at",service['service_url'])
+            return {}
+    else:
+        if VERBOSE:
+            print("No authentication token found for this service. Aborting.")
+        return {}
 
 
 
@@ -304,7 +364,8 @@ def launchGui():
 try:
     import FreeCAD
 except:
-    print("FreeCAD not available")
+    if VERBOSE:
+        print("FreeCAD not available")
 else:
     if FreeCAD.GuiUp:
         # Running inside FreeCAD
