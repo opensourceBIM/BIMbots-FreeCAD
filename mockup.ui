@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>265</width>
-    <height>748</height>
+    <width>276</width>
+    <height>948</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,6 +30,33 @@
     </widget>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QProgressBar" name="progressBar">
+       <property name="value">
+        <number>10</number>
+       </property>
+       <property name="format">
+        <string>connecting...</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_6">
+       <property name="toolTip">
+        <string>Cancel the current connection</string>
+       </property>
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+       <property name="icon">
+        <iconset theme="process-stop"/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Available services</string>
@@ -49,30 +76,196 @@
       </item>
       <item>
        <widget class="QPushButton" name="pushButton">
+        <property name="toolTip">
+         <string>Tries to obtain a list of available services from all registered servers</string>
+        </property>
         <property name="text">
-         <string>Reload list</string>
+         <string>Rescan services</string>
+        </property>
+        <property name="icon">
+         <iconset theme="edit-redo"/>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QPushButton" name="pushButton_2">
+        <property name="toolTip">
+         <string>Adds a new entry to the list of known service providers</string>
+        </property>
         <property name="text">
-         <string>Add manually</string>
+         <string>Add custom service provider</string>
+        </property>
+        <property name="icon">
+         <iconset theme="list-add"/>
         </property>
        </widget>
       </item>
       <item>
+       <widget class="QGroupBox" name="groupBox_4">
+        <property name="title">
+         <string>Add custom service provider:</string>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_5">
+         <item>
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>Name:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string>URL:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="lineEdit">
+             <property name="toolTip">
+              <string>A custom name to identify this services provider</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="lineEdit_2">
+             <property name="toolTip">
+              <string>The URL of this services provider</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QPushButton" name="pushButton_7">
+             <property name="toolTip">
+              <string>Add this server to the list of known service providers</string>
+             </property>
+             <property name="text">
+              <string>Add</string>
+             </property>
+             <property name="icon">
+              <iconset theme="list-add"/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_8">
+             <property name="toolTip">
+              <string>Cancels the operation</string>
+             </property>
+             <property name="text">
+              <string>Cancel</string>
+             </property>
+             <property name="icon">
+              <iconset theme="cancel"/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="pushButton_3">
+        <property name="toolTip">
+         <string>Removes a selected service from the list above</string>
+        </property>
         <property name="text">
-         <string>Remove</string>
+         <string>Remove selected service</string>
+        </property>
+        <property name="icon">
+         <iconset theme="remove"/>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QPushButton" name="pushButton_4">
+        <property name="toolTip">
+         <string>Authenticates with a selected service</string>
+        </property>
         <property name="text">
          <string>Authenticate</string>
         </property>
+        <property name="icon">
+         <iconset theme="user"/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="groupBox_5">
+        <property name="title">
+         <string>Paste authentication credentials here:</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <item>
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_5">
+             <property name="text">
+              <string>Service URL:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="lineEdit_3">
+             <property name="toolTip">
+              <string>The service URL returned by the authentication process</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>Token:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="lineEdit_4">
+             <property name="toolTip">
+              <string>The token returned by the authentication process</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <item>
+            <widget class="QPushButton" name="pushButton_9">
+             <property name="toolTip">
+              <string>Saves the authentication credentials</string>
+             </property>
+             <property name="text">
+              <string>Save</string>
+             </property>
+             <property name="icon">
+              <iconset theme="document-save"/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_10">
+             <property name="text">
+              <string>Cancel</string>
+             </property>
+             <property name="icon">
+              <iconset theme="cancel"/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
        </widget>
       </item>
      </layout>
@@ -81,13 +274,13 @@
    <item>
     <widget class="QGroupBox" name="groupBox_2">
      <property name="title">
-      <string>Run service</string>
+      <string>Run selected service</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
        <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>Service Name</string>
+         <string>Run service on:</string>
         </property>
        </widget>
       </item>
@@ -115,6 +308,9 @@
         <property name="text">
          <string>Run service</string>
         </property>
+        <property name="icon">
+         <iconset theme="media-playback-start"/>
+        </property>
        </widget>
       </item>
      </layout>
@@ -127,7 +323,16 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
-       <widget class="QTextBrowser" name="textBrowser"/>
+       <widget class="QTreeWidget" name="treeWidget_2">
+        <attribute name="headerVisible">
+         <bool>false</bool>
+        </attribute>
+        <column>
+         <property name="text">
+          <string notr="true">1</string>
+         </property>
+        </column>
+       </widget>
       </item>
      </layout>
     </widget>

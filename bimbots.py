@@ -74,7 +74,13 @@ def read_config():
     #      "client_description": "The best BIM app out there", # a description shown on BIMServers authentication pages and user settings
     #      "client_icon": "https://server.com/image.png",  # a PNG icon for this application
     #      "client_url": "https://myserver.comg",  # a URL for this application, shown on BIMservers
-    #   }
+    #   },
+    #   "providers" :
+    #   [
+    #     { "listUrl": "http://myserver.com/servicelist", # the list of services provided by the server
+    #       "name": "My Server", # a custom name for this server
+    #     }, ...
+    #   ]
     #   "services" :
     #   [
     #     { "id": 3014734, # the id number of the service, returned by get_services(). Warning, this is an int, not a string
@@ -171,6 +177,33 @@ def save_default_config():
     save_config(config)
 
 
+def get_custom_providers():
+    
+    "Gets custom providers from the config file"
+    
+    config = read_config()
+    if "providers" in config:
+        return config['providers']
+    return []
+
+
+def save_custom_provider(name,list_url):
+    
+    "Saves a custom services provider to the config file"
+    
+    config = read_config()
+    if "providers" in config:
+        for provider in config['providers']:
+            if provider['listUrl'] == list_url:
+                provider['name'] = name
+                break
+        else:
+            providers.append({'name':name,'listUrl':list_url})
+    else:
+        config['providers'] = [{'name':name,'listUrl':list_url}]
+    save_config(config)
+
+
 #############   Generic BIMbots interface
 
 
@@ -178,45 +211,47 @@ def get_service_providers(url=get_config_value("default_services_url")):
 
     "returns a list of dicts {name,desciption,listUrl} of BIMbots services obtained from the given url"
 
+    providers = get_custom_providers()
     try:
         response = requests.get(url,timeout=get_config_value("connection_timeout"))
     except:
         if VERBOSE:
             print("Error: unable to connect to service providers list at",url)
-        return []
+        return providers
     if response.ok:
         try:
-            return response.json()['active']
+            defaults = response.json()['active']
+            return providers + defaults
         except:
             if VERBOSE:
                 print("Error: unable to read service providers list from",url)
-            return []
+            return providers
     else:
         if VERBOSE:
             print("Error: unable to fetch service providers list from",url)
-        return []
+        return providers
 
 
-def get_services(url):
+def get_services(list_url):
 
-    "returns a list of dicts of service plugins available from a given service provider url"
+    "returns a list of dicts of service plugins available from a given service provider list url"
 
     try:
         response = requests.get(url,timeout=get_config_value("connection_timeout"))
     except:
         if VERBOSE:
-            print("Error: unable to connect to service provider at",url)
+            print("Error: unable to connect to service provider at",list_url)
         return []
     if response.ok:
         try:
             return response.json()['services']
         except:
             if VERBOSE:
-                print("Error: unable to read services list from",url)
+                print("Error: unable to read services list from",list_url)
             return []
     else:
         if VERBOSE:
-            print("Error: unable to fetch services list from",url)
+            print("Error: unable to fetch services list from",list_url)
         return []
 
 
@@ -327,6 +362,7 @@ def send_test_payload(provider_url,service_id):
         if response.ok:
             try:
                 res = response.json()
+                # TODO get headers too, get Context-Id
             except:
                 if VERBOSE:
                     print("Error: unable to read response from service",service_id,"at",service['service_url'])
@@ -372,7 +408,7 @@ else:
         launchGui()
 
 
-#############   Simple test output, if run from the command line
+#############   Print a list of available services, if run from the command line
 
 
 if __name__ == "__main__":
