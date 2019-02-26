@@ -8,7 +8,7 @@ The plugin consists (so far) of one python script, that can be run directly from
 
 It (will) also works as a [FreeCAD](http://www.freecadweb.org) macro. If launched from the FreeCAD macros menu, the plugin will autodetect that it is running inside FreeCAD and launch a full GUI that allows to run different BIMbots services.
 
-### So far it can:
+#### So far it can:
 
 * Retrive a list of BIMbots services
 * Authenticate with any of the services
@@ -20,15 +20,15 @@ When running inside FreeCAD:
 * Show the interface in FreeCAD
 * Gather list of available services
 
-### To do:
+#### To do:
 
 * Design icons
 * Write python mocule documentation
 * Write user (GUI) documentation
 
-### How to test
+#### How to test
 
-### From the command line (linux/mac only ATM)
+* From the command line (linux/mac only ATM)
 
 ```
 > bimbots.py
@@ -43,7 +43,7 @@ Service Simple Analyses Service from Yorik's test BIMserver - not authenticateds
 Service Detailed Analyses Service from Yorik's test BIMserver - not authenticated
 ```
 
-#### From Python
+* From Python
 
 ```
 >>> import bimbots
@@ -59,8 +59,8 @@ Service Detailed Analyses Service from Yorik's test BIMserver - not authenticate
 >>>
 ```
 
-#### From FreeCAD
+* From FreeCAD
 
-* Copy this whole directory (or symlink it) inside your user Mod directory (which you get by issuing `App.getUserAppDataDir()+"Mod"` in the FreeCAD python console, usually ~/.FreeCAD/Mod on linux/mac)
-* Restart FreeCAD if already running
-* in the FreeCAd python console, type: `import bimbots`
+  * Copy this whole directory (or symlink it) inside your user Mod directory (which you get by issuing `App.getUserAppDataDir()+"Mod"` in the FreeCAD python console, usually ~/.FreeCAD/Mod on linux/mac)
+  * Restart FreeCAD if already running
+  * in the FreeCAD python console, type: `import bimbots`
