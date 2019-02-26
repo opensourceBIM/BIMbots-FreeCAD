@@ -178,9 +178,9 @@ def save_default_config():
 
 
 def get_custom_providers():
-    
+
     "Gets custom providers from the config file"
-    
+
     config = read_config()
     if "providers" in config:
         return config['providers']
@@ -188,9 +188,9 @@ def get_custom_providers():
 
 
 def save_custom_provider(name,list_url):
-    
+
     "Saves a custom services provider to the config file"
-    
+
     config = read_config()
     if "providers" in config:
         for provider in config['providers']:
@@ -237,7 +237,7 @@ def get_services(list_url):
     "returns a list of dicts of service plugins available from a given service provider list url"
 
     try:
-        response = requests.get(url,timeout=get_config_value("connection_timeout"))
+        response = requests.get(list_url,timeout=get_config_value("connection_timeout"))
     except:
         if VERBOSE:
             print("Error: unable to connect to service provider at",list_url)
@@ -382,15 +382,148 @@ def send_test_payload(provider_url,service_id):
 
 
 
-#############  FreeCAD GUI mode
+#############   FreeCAD UI panel
 
 
-def launchGui():
+def launch_ui():
 
-    "Launches the FreeCAD bimbots GUI"
+    "Opens the BIMbots task panel in FreeCAD"
 
-    import FreeCAD,FreeCADGui
-    print("FreeCAD GUI not yet implemented!)")
+    import FreeCADGui
+    FreeCADGui.Control.showDialog(bimbots_panel())
+
+
+class bimbots_panel:
+
+    "This is the interface panel implementation of bimbots.ui. It is meant to run inside FreeCAD"
+
+    def __init__(self):
+
+        import FreeCADGui
+        from PySide import QtCore,QtGui
+
+        # this is to be able to cancel running progress
+        self.running = True
+
+        # load the ui file. Widgets re automatically named from the ui file
+        self.form = FreeCADGui.PySideUic.loadUi(os.path.join(os.path.dirname(__file__),"bimbots.ui"))
+
+        # set the logo and icon
+        self.form.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","BIM-Bots-validationchecker.png")))
+        logo = QtGui.QPixmap(os.path.join(os.path.dirname(__file__),"icons","BIM-Bots-header.png"))
+        w = self.form.servicesList.width()
+        h = int(w*0.2578)
+        self.form.labelLogo.setText("")
+        self.form.labelLogo.setPixmap(logo.scaled(w,h))
+
+        # hide the collapsible parts
+        self.form.groupProgress.hide()
+        self.form.groupRescan.hide()
+        self.form.groupAddService.hide()
+        self.form.groupAuthenticate.hide()
+        self.form.groupResults.hide()
+
+        # connect signals and slots
+        self.form.buttonRescan.clicked.connect(self.form.groupRescan.show)
+        self.form.buttonDoRescan.clicked.connect(self.onRescan)
+        self.form.buttonCancelRescan.clicked.connect(self.form.groupRescan.hide)
+        self.form.buttonAddService.clicked.connect(self.form.groupAddService.show)
+        self.form.buttonSaveService.clicked.connect(self.onAddService)
+        self.form.buttonCancelService.clicked.connect(self.form.groupAddService.hide)
+        self.form.buttonAuthenticate.clicked.connect(self.form.groupAuthenticate.show)
+        self.form.buttonSaveAuthenticate.clicked.connect(self.onAuthenticate)
+        self.form.buttonCancelAuthenticate.clicked.connect(self.form.groupAuthenticate.hide)
+        self.form.buttonRun.clicked.connect(self.onRun)
+        self.form.buttonCancelProgress.clicked.connect(self.onCancel)
+
+        # perform initial scan after the UI has been fully drawn
+        QtCore.QTimer.singleShot(0,self.onRescan)
+
+
+    def getStandardButtons(self):
+
+        "The list of buttons to show above the task panel"
+
+        from PySide import QtGui
+        return int(QtGui.QDialogButtonBox.Close)
+
+    def reject(self):
+
+        "Called when the dialog is closed"
+
+        import FreeCADGui
+        FreeCADGui.Control.closeDialog()
+        if FreeCAD.ActiveDocument:
+            FreeCAD.ActiveDocument.recompute()
+
+    def onRescan(self):
+
+        "Scans for providers and services and updates the Available Services list"
+
+        from PySide import QtCore,QtGui
+
+        # clean the services list
+        self.form.servicesList.clear()
+
+        # setup the progress bar
+        self.running = True
+        self.form.groupProgress.show()
+        self.form.progressBar.setFormat("Getting services")
+
+        # query services
+        providers = get_service_providers()
+        self.form.progressBar.setValue(int(100/len(providers)))
+        n = 1
+        for provider in providers:
+            top = QtGui.QTreeWidgetItem(self.form.servicesList)
+            top.setText(0,provider['name'])
+            if self.running:
+                services = get_services(provider['listUrl'])
+                if services:
+                    for service in services:
+                        child = QtGui.QTreeWidgetItem(top)
+                        child.setText(0,service['name'])
+                        authenticated = get_service_config(provider['listUrl'],service['id'])
+                    top.setExpanded(True)
+                else:
+                    if self.form.checkShowUnreachable.isChecked():
+                        # show provider as disabled
+                        top.setFlags(top.flags() & ~QtCore.Qt.ItemIsEnabled)
+                    else:
+                        # remove it from the list
+                        self.form.servicesList.takeTopLevelItem(self.form.servicesList.topLevelItemCount()-1)
+            self.form.progressBar.setValue(int(100*(n/len(providers))))
+            n += 1
+
+        # clean the progress bar
+        self.running = False
+        self.form.groupProgress.hide()
+        self.form.groupRescan.hide()
+
+
+    def onAddService(self):
+
+        "Adds a custom service provider and its services and updates the Available Services list"
+
+        pass
+
+    def onAuthenticate(self):
+
+        "Authenticates with the selected service and updates the Available Services list"
+
+        pass
+
+    def onRun(self):
+
+        "Runs the selected service"
+
+        pass
+
+    def onCancel(self):
+
+        "Cancels the current operation"
+
+        self.running = False
 
 
 
@@ -404,8 +537,8 @@ except:
         print("FreeCAD not available")
 else:
     if FreeCAD.GuiUp:
-        # Running inside FreeCAD
-        launchGui()
+        # We are running inside FreeCAD: show the UI
+        launch_ui()
 
 
 #############   Print a list of available services, if run from the command line
@@ -414,5 +547,3 @@ else:
 if __name__ == "__main__":
 
     print_services()
-
-
