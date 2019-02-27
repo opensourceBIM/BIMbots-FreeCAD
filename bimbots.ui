@@ -309,7 +309,7 @@
          <string>Removes a selected service from the list above</string>
         </property>
         <property name="text">
-         <string>Remove selected service</string>
+         <string>Remove custom service provider</string>
         </property>
         <property name="icon">
          <iconset theme="remove">
@@ -428,7 +428,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QListWidget" name="listScope">
+       <widget class="QListWidget" name="scopeList">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
           <horstretch>0</horstretch>

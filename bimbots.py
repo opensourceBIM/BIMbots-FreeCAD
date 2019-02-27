@@ -181,10 +181,13 @@ def get_custom_providers():
 
     "Gets custom providers from the config file"
 
+    providers = []
     config = read_config()
     if "providers" in config:
-        return config['providers']
-    return []
+        for provider in config['providers']:
+            provider['custom'] = "true" # indicate that this provider is custom
+            providers.append(provider)
+    return providers
 
 
 def save_custom_provider(name,list_url):
@@ -204,14 +207,37 @@ def save_custom_provider(name,list_url):
     save_config(config)
 
 
+def delete_custom_provider(list_url):
+
+    "Removes a custom provider from the config file"
+
+    config = read_config()
+    if "providers" in config:
+        providers = []
+        found = False
+        for provider in config['providers']:
+            if provider['listUrl'] == list_url:
+                found = True
+            else:
+                providers.append(provider)
+        if found:
+            config['providers'] = providers
+            save_config(config)
+            return
+    if VERBOSE:
+        print("Error: Provider not found in config:",list_url)
+
+
 #############   Generic BIMbots interface
 
 
-def get_service_providers(url=get_config_value("default_services_url")):
+def get_service_providers(autodiscover=True,url=get_config_value("default_services_url")):
 
-    "returns a list of dicts {name,desciption,listUrl} of BIMbots services obtained from the given url"
+    "returns a list of dicts {name,desciption,listUrl} of BIMbots services obtained from the stored config and given url"
 
     providers = get_custom_providers()
+    if not autodiscover:
+        return providers
     try:
         response = requests.get(url,timeout=get_config_value("connection_timeout"))
     except:
@@ -221,7 +247,13 @@ def get_service_providers(url=get_config_value("default_services_url")):
     if response.ok:
         try:
             defaults = response.json()['active']
-            return providers + defaults
+            for default in defaults:
+                for custom in providers:
+                    if custom['listUrl'] == default['listUrl']:
+                        break
+                else:
+                    providers.append(default)
+            return providers
         except:
             if VERBOSE:
                 print("Error: unable to read service providers list from",url)
@@ -423,9 +455,12 @@ class bimbots_panel:
         self.form.groupAuthenticate.hide()
         self.form.groupResults.hide()
 
-        # connect signals and slots
+        # restore default settings
+        self.getDefaults()
+
+        # connect buttons
         self.form.buttonRescan.clicked.connect(self.form.groupRescan.show)
-        self.form.buttonDoRescan.clicked.connect(self.onRescan)
+        self.form.buttonDoRescan.clicked.connect(self.onScan)
         self.form.buttonCancelRescan.clicked.connect(self.form.groupRescan.hide)
         self.form.buttonAddService.clicked.connect(self.form.groupAddService.show)
         self.form.buttonSaveService.clicked.connect(self.onAddService)
@@ -436,8 +471,16 @@ class bimbots_panel:
         self.form.buttonRun.clicked.connect(self.onRun)
         self.form.buttonCancelProgress.clicked.connect(self.onCancel)
 
+        # connect services list
+        self.form.servicesList.currentItemChanged.connect(self.onListClick)
+        self.form.scopeList.currentItemChanged.connect(self.onListClick)
+
+        # connect widgets that should remember their setting
+        self.form.checkAutoDiscover.stateChanged.connect(self.saveDefaults)
+        self.form.checkAutoDiscover.stateChanged.connect(self.saveDefaults)
+
         # perform initial scan after the UI has been fully drawn
-        QtCore.QTimer.singleShot(0,self.onRescan)
+        QtCore.QTimer.singleShot(0,self.onScan)
 
 
     def getStandardButtons(self):
@@ -446,6 +489,7 @@ class bimbots_panel:
 
         from PySide import QtGui
         return int(QtGui.QDialogButtonBox.Close)
+
 
     def reject(self):
 
@@ -456,7 +500,8 @@ class bimbots_panel:
         if FreeCAD.ActiveDocument:
             FreeCAD.ActiveDocument.recompute()
 
-    def onRescan(self):
+
+    def onScan(self):
 
         "Scans for providers and services and updates the Available Services list"
 
@@ -471,23 +516,43 @@ class bimbots_panel:
         self.form.progressBar.setFormat("Getting services")
 
         # query services
-        providers = get_service_providers()
+        providers = get_service_providers(autodiscover=self.form.checkAutoDiscover.isChecked())
         self.form.progressBar.setValue(int(100/len(providers)))
         n = 1
         for provider in providers:
             top = QtGui.QTreeWidgetItem(self.form.servicesList)
             top.setText(0,provider['name'])
+            top.setIcon(0,QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","Tango-Computer.svg")))
+            # store the whole provider dict
+            top.setData(0,QtCore.Qt.UserRole,json.dumps(provider))
+            if "description" in provider:
+                top.setToolTip(0,provider['description'])
             if self.running:
                 services = get_services(provider['listUrl'])
                 if services:
                     for service in services:
+                        # services descriptions have a more accurate server name
+                        if ("provider" in service) and (service['provider'] != top.text(0)):
+                            top.setText(0,service['provider'])
                         child = QtGui.QTreeWidgetItem(top)
                         child.setText(0,service['name'])
+                        # store the whole service dict
+                        child.setData(0,QtCore.Qt.UserRole,json.dumps(service))
+                        # construct tooltip with different pieces of data
+                        if "description" in service:
+                            child.setToolTip(0,service['description'])
+                        if "inputs" in service:
+                            child.setToolTip(0,child.toolTip(0)+"\n"+"inputs: "+",".join(service['inputs']))
+                        if "outputs" in service:
+                            child.setToolTip(0,child.toolTip(0)+"\n"+"outputs: "+",".join(service['outputs']))
                         authenticated = get_service_config(provider['listUrl'],service['id'])
+                        if authenticated:
+                            child.setIcon(0,QtGui.QIcon(":/icons/button_valid.svg")) # FreeCAD builtin icon
+                            child.setToolTip(0,child.toolTip(0)+"\n"+"Authenticated")
                     top.setExpanded(True)
                 else:
                     if self.form.checkShowUnreachable.isChecked():
-                        # show provider as disabled
+                        # show provider as disabled: remove Enabled from flags
                         top.setFlags(top.flags() & ~QtCore.Qt.ItemIsEnabled)
                     else:
                         # remove it from the list
@@ -499,6 +564,33 @@ class bimbots_panel:
         self.running = False
         self.form.groupProgress.hide()
         self.form.groupRescan.hide()
+
+
+    def onListClick(self,arg1=None,arg2=None):
+
+        "Checks which items are selected and what options should be enabled. Args not used"
+
+        from PySide import QtCore,QtGui
+
+        # start by disabling everything
+        self.form.buttonRemoveService.setEnabled(False)
+        self.form.buttonAuthenticate.setEnabled(False)
+        self.form.buttonRun.setEnabled(False)
+        serviceitem = self.form.servicesList.currentItem()
+        scopeitem = self.form.scopeList.currentItem()
+        if serviceitem:
+            if serviceitem.parent():
+                # this is a service
+                self.form.buttonAuthenticate.setEnabled(True)
+                if "Authenticated" in serviceitem.toolTip(0):
+                    if scopeitem:
+                        self.form.buttonRun.setEnabled(True)
+            else:
+                # this is a provider
+                if 'custom' in json.loads(serviceitem.data(0,QtCore.Qt.UserRole)):
+                    self.form.buttonRemoveService.setEnabled(True)
+
+
 
 
     def onAddService(self):
@@ -524,6 +616,22 @@ class bimbots_panel:
         "Cancels the current operation"
 
         self.running = False
+
+    def getDefaults(self):
+
+        "Sets the state of different widgets from previously saved state"
+
+        settings = FreeCAD.ParamGet("User parameter:Plugins/BIMbots")
+        self.form.checkAutoDiscover.setChecked(settings.GetBool("checkAutoDiscover",True))
+        self.form.checkShowUnreachable.setChecked(settings.GetBool("checkShowUnreachable",True))
+
+    def saveDefaults(self,arg=None):
+
+        "Save the state of different widgets. Arg not used"
+
+        settings = FreeCAD.ParamGet("User parameter:Plugins/BIMbots")
+        settings.SetBool("checkAutoDiscover",self.form.checkAutoDiscover.isChecked())
+        settings.SetBool("checkShowUnreachable",self.form.checkShowUnreachable.isChecked())
 
 
 
