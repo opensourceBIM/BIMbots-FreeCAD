@@ -26,21 +26,22 @@
 # Homepage: https://github.com/opensourceBIM/BIMbots-FreeCAD
 # That repo contains useful implementation notes too
 
+"""This module provides tools to communicate with BIMbots services, and
+a FreeCAD GUI, that autoruns if this module is executed as a FreeCAD macro or
+simply imported from the FreeCAD Python console. If run from the command line, 
+it prints a summary of available (and reachable) BIMbots services."""
+
 from __future__ import print_function # this code is compatible with python 2 and 3
 
 import os, sys, requests, json
 
+# python2 / python3 differences
 if sys.version_info.major < 3:
     import urllib
     from urllib import urlencode
 else:
     import urllib.parse
     from urllib.parse import urlencode
-
-"""This module provides tools to communicate with BIMbots services, and
-a FreeCAD GUI, that autoruns if this module is executed as a FreeCAD macro.
-If run from the command line, it prints a summary of available BIMbots services."""
-
 
 #############   Configuration defaults
 
@@ -55,6 +56,19 @@ CLIENT_NAME = "FreeCAD"
 CLIENT_DESCRIPTION = "The FreeCAD BIMbots plugin"
 CLIENT_URL = "https://github.com/opensourceBIM/BIMbots-FreeCAD"
 CLIENT_ICON = "https://www.freecadweb.org/images/logo.png" #bimserver doesn't seem to like this image... Why, OH WHY?
+
+# detect if we're running inside FreeCAD
+run_as_macro = False
+try:
+    import FreeCAD
+except:
+    if VERBOSE:
+        print("FreeCAD not available")
+else:
+    if FreeCAD.GuiUp:
+        import FreeCADGui
+        from PySide import QtCore,QtGui
+        run_as_macro = True
 
 
 #############   Config file management
@@ -105,7 +119,7 @@ def read_config():
 
 def get_config_value(value):
 
-    "Gets the given config value from the config file, or defaults to the default value if existing"
+    "Returns the given config value from the config file, or defaults to the default value if existing"
 
     config  = read_config()
     if value in config['config']:
@@ -120,7 +134,7 @@ def get_config_value(value):
 
 def save_config(config):
 
-    "Saves the given dict to the config file. Overwrites everything, be careful!"
+    "Saves the given dict to the config file. Overwrites everything, be careful! Returns nothing."
 
     if os.path.exists(CONFIG_FILE) and VERBOSE:
         print("Config file",CONFIG_FILE,"not found. Creating a new one.")
@@ -132,7 +146,7 @@ def save_config(config):
 
 def save_authentication(provider_url,service_id,service_name,service_url,token):
 
-    "Saved the given service authentication data to the config file"
+    "Saved the given service authentication data to the config file. Returns nothing."
 
     config = read_config()
     for service in config['services']:
@@ -157,7 +171,7 @@ def save_authentication(provider_url,service_id,service_name,service_url,token):
 
 def get_service_config(provider_url,service_id):
 
-    "returns the service associated with the given provider url and service id if it has already been authenticated"
+    "Returns the service associated with the given provider url and service id if it has already been authenticated"
 
     data = read_config()
     for service in data['services']:
@@ -169,7 +183,7 @@ def get_service_config(provider_url,service_id):
 
 def save_default_config():
 
-    "Saves the default settings to the config file"
+    "Saves the default settings to the config file. Returns nothing"
 
     config = read_config()
     for setting in ["default_services_url","connection_timeout","client_name","client_description","client_icon","client_url"]:
@@ -179,7 +193,7 @@ def save_default_config():
 
 def get_custom_providers():
 
-    "Gets custom providers from the config file"
+    "Returns custom providers from the config file"
 
     providers = []
     config = read_config()
@@ -192,7 +206,7 @@ def get_custom_providers():
 
 def save_custom_provider(name,list_url):
 
-    "Saves a custom services provider to the config file"
+    "Saves a custom services provider to the config file. Returns nothing."
 
     config = read_config()
     if "providers" in config:
@@ -201,7 +215,7 @@ def save_custom_provider(name,list_url):
                 provider['name'] = name
                 break
         else:
-            providers.append({'name':name,'listUrl':list_url})
+            config['providers'].append({'name':name,'listUrl':list_url})
     else:
         config['providers'] = [{'name':name,'listUrl':list_url}]
     save_config(config)
@@ -209,7 +223,7 @@ def save_custom_provider(name,list_url):
 
 def delete_custom_provider(list_url):
 
-    "Removes a custom provider from the config file"
+    "Removes a custom provider from the config file. Returns nothing."
 
     config = read_config()
     if "providers" in config:
@@ -231,10 +245,13 @@ def delete_custom_provider(list_url):
 #############   Generic BIMbots interface
 
 
-def get_service_providers(autodiscover=True,url=get_config_value("default_services_url")):
+def get_service_providers(autodiscover=True,url=None):
 
-    "returns a list of dicts {name,desciption,listUrl} of BIMbots services obtained from the stored config and given url"
+    """Returns a list of dicts {name,desciption,listUrl} of BIMbots services obtained from the stored config and,
+    if autodiscover is True, from the given service list url (or from the default one if none is given)."""
 
+    if not url:
+        url = get_config_value("default_services_url")
     providers = get_custom_providers()
     if not autodiscover:
         return providers
@@ -266,7 +283,7 @@ def get_service_providers(autodiscover=True,url=get_config_value("default_servic
 
 def get_services(list_url):
 
-    "returns a list of dicts of service plugins available from a given service provider list url"
+    "Returns a list of dicts of service plugins available from a given service provider list url"
 
     try:
         response = requests.get(list_url,timeout=get_config_value("connection_timeout"))
@@ -289,7 +306,7 @@ def get_services(list_url):
 
 def authenticate_step_1(register_url):
 
-    "Sends an authentication request to the given server"
+    "Sends an authentication request to the given server. Returns the result json as a dict"
 
     data = {
         "redirect_url": "SHOW_CODE",
@@ -322,7 +339,7 @@ def authenticate_step_1(register_url):
 
 def authenticate_step_2(authorization_url,client_id,service_name):
 
-    "Opens the authorization url in an external browser"
+    "Opens the authorization url in an external browser. Returns True if successful, the authorization URL to be shown if not."
 
 
     data = {
@@ -338,9 +355,13 @@ def authenticate_step_2(authorization_url,client_id,service_name):
     except:
         print("Error: Unable to launch web browser. Please paste the following URL in your web browser:")
         print(url)
-        return False
+        return url
     else:
-        return webbrowser.open(url)
+        res = webbrowser.open(url)
+        if res:
+            return True
+        else:
+            return url
 
 
 def print_services():
@@ -364,9 +385,21 @@ def print_services():
         print("No available service found")
 
 
+def beautyprint(data):
+
+    "Beautifies (prints with indents) and prints a given dictionary or json string"
+
+    if isinstance(data,(dict,list)):
+        data = json.dumps(data,sort_keys = True,indent=4)
+    else:
+        # this is a string already, convert/deconvert to get indents
+        data = json.dumps(json.loads(data),sort_keys = True,indent=4)
+    print(data)
+
+
 def send_test_payload(provider_url,service_id):
 
-    "Sends a test IFC file to the given service, returns the json response as a dict"
+    "Sends a test IFC file to the given service. Returns the json response as a dict"
 
     service = get_service_config(provider_url,service_id)
     if service:
@@ -421,18 +454,15 @@ def launch_ui():
 
     "Opens the BIMbots task panel in FreeCAD"
 
-    import FreeCADGui
     FreeCADGui.Control.showDialog(bimbots_panel())
 
 
 class bimbots_panel:
 
-    "This is the interface panel implementation of bimbots.ui. It is meant to run inside FreeCAD"
+    """This is the interface panel implementation of bimbots.ui. It is meant to run inside FreeCAD.
+    It is launched by the launch_ui() function"""
 
     def __init__(self):
-
-        import FreeCADGui
-        from PySide import QtCore,QtGui
 
         # this is to be able to cancel running progress
         self.running = True
@@ -460,16 +490,25 @@ class bimbots_panel:
 
         # connect buttons
         self.form.buttonRescan.clicked.connect(self.form.groupRescan.show)
+        self.form.buttonDoRescan.clicked.connect(self.form.groupRescan.hide)
         self.form.buttonDoRescan.clicked.connect(self.onScan)
         self.form.buttonCancelRescan.clicked.connect(self.form.groupRescan.hide)
         self.form.buttonAddService.clicked.connect(self.form.groupAddService.show)
+        self.form.buttonRemoveService.clicked.connect(self.onRemoveService)
         self.form.buttonSaveService.clicked.connect(self.onAddService)
         self.form.buttonCancelService.clicked.connect(self.form.groupAddService.hide)
         self.form.buttonAuthenticate.clicked.connect(self.form.groupAuthenticate.show)
-        self.form.buttonSaveAuthenticate.clicked.connect(self.onAuthenticate)
+        self.form.buttonAuthenticate.clicked.connect(self.onAuthenticate)
+        self.form.buttonSaveAuthenticate.clicked.connect(self.onSaveAuthenticate)
         self.form.buttonCancelAuthenticate.clicked.connect(self.form.groupAuthenticate.hide)
         self.form.buttonRun.clicked.connect(self.onRun)
         self.form.buttonCancelProgress.clicked.connect(self.onCancel)
+
+        # fields validation
+        self.form.lineEditServiceName.textChanged.connect(self.validateFields)
+        self.form.lineEditServiceUrl.textChanged.connect(self.validateFields)
+        self.form.lineEditAuthenticateUrl.textChanged.connect(self.validateFields)
+        self.form.lineEditAuthenticateToken.textChanged.connect(self.validateFields)
 
         # connect services list
         self.form.servicesList.currentItemChanged.connect(self.onListClick)
@@ -477,7 +516,7 @@ class bimbots_panel:
 
         # connect widgets that should remember their setting
         self.form.checkAutoDiscover.stateChanged.connect(self.saveDefaults)
-        self.form.checkAutoDiscover.stateChanged.connect(self.saveDefaults)
+        self.form.checkShowUnreachable.stateChanged.connect(self.saveDefaults)
 
         # perform initial scan after the UI has been fully drawn
         QtCore.QTimer.singleShot(0,self.onScan)
@@ -487,7 +526,6 @@ class bimbots_panel:
 
         "The list of buttons to show above the task panel"
 
-        from PySide import QtGui
         return int(QtGui.QDialogButtonBox.Close)
 
 
@@ -495,7 +533,6 @@ class bimbots_panel:
 
         "Called when the dialog is closed"
 
-        import FreeCADGui
         FreeCADGui.Control.closeDialog()
         if FreeCAD.ActiveDocument:
             FreeCAD.ActiveDocument.recompute()
@@ -504,8 +541,6 @@ class bimbots_panel:
     def onScan(self):
 
         "Scans for providers and services and updates the Available Services list"
-
-        from PySide import QtCore,QtGui
 
         # clean the services list
         self.form.servicesList.clear()
@@ -525,14 +560,20 @@ class bimbots_panel:
             top.setIcon(0,QtGui.QIcon(os.path.join(os.path.dirname(__file__),"icons","Tango-Computer.svg")))
             # store the whole provider dict
             top.setData(0,QtCore.Qt.UserRole,json.dumps(provider))
+            top.setToolTip(0,provider['name'])
             if "description" in provider:
-                top.setToolTip(0,provider['description'])
+                if provider['description']:
+                    top.setToolTip(0,provider['description'])
+            if "custom" in provider:
+                top.setToolTip(0,top.toolTip(0)+" (saved)")
+            else:
+                top.setToolTip(0,top.toolTip(0)+" (autodiscovered)")
             if self.running:
                 services = get_services(provider['listUrl'])
                 if services:
                     for service in services:
-                        # services descriptions have a more accurate server name
-                        if ("provider" in service) and (service['provider'] != top.text(0)):
+                        # services descriptions might contain a more accurate server name
+                        if ("provider" in service) and service['provider'] and (service['provider'] != top.text(0)):
                             top.setText(0,service['provider'])
                         child = QtGui.QTreeWidgetItem(top)
                         child.setText(0,service['name'])
@@ -553,7 +594,13 @@ class bimbots_panel:
                 else:
                     if self.form.checkShowUnreachable.isChecked():
                         # show provider as disabled: remove Enabled from flags
-                        top.setFlags(top.flags() & ~QtCore.Qt.ItemIsEnabled)
+                        # This doesn't work well as it becomes unselectable and therefore not removable
+                        # top.setFlags(top.flags() & ~QtCore.Qt.ItemIsEnabled)
+                        # instead, paint it with the disabled color and show a daunting icon
+                        top.setIcon(0,QtGui.QIcon(":/icons/button_invalid.svg"))
+                        palette = QtGui.QApplication.palette()
+                        top.setForeground(0,palette.brush(palette.Disabled,palette.Text))
+                        top.setToolTip(0,top.toolTip(0)+" - Unreachable")
                     else:
                         # remove it from the list
                         self.form.servicesList.takeTopLevelItem(self.form.servicesList.topLevelItemCount()-1)
@@ -569,8 +616,6 @@ class bimbots_panel:
     def onListClick(self,arg1=None,arg2=None):
 
         "Checks which items are selected and what options should be enabled. Args not used"
-
-        from PySide import QtCore,QtGui
 
         # start by disabling everything
         self.form.buttonRemoveService.setEnabled(False)
@@ -590,20 +635,96 @@ class bimbots_panel:
                 if 'custom' in json.loads(serviceitem.data(0,QtCore.Qt.UserRole)):
                     self.form.buttonRemoveService.setEnabled(True)
 
+    def validateFields(self,arg):
 
+        "Validates the editable fields, turn buttons on/off as needed. Arg not used"
 
+        # disable everything first
+        self.form.buttonSaveService.setEnabled(False)
+        self.form.buttonSaveAuthenticate.setEnabled(False)
+
+        if self.form.lineEditServiceName.text() and self.form.lineEditServiceUrl.text():
+            self.form.buttonSaveService.setEnabled(True)
+
+        if self.form.lineEditAuthenticateUrl.text() and self.form.lineEditAuthenticateToken.text():
+            self.form.buttonSaveAuthenticate.setEnabled(True)
 
     def onAddService(self):
 
         "Adds a custom service provider and its services and updates the Available Services list"
 
-        pass
+        name = self.form.lineEditServiceName.text()
+        url = self.form.lineEditServiceUrl.text()
+        if name and url:
+            save_custom_provider(name,url)
+            self.form.groupAddService.hide()
+            QtCore.QTimer.singleShot(0,self.onScan)
+
+    def onRemoveService(self):
+
+        "Removes a custom service provider from the config"
+
+        serviceitem = self.form.servicesList.currentItem()
+        if serviceitem:
+            if not serviceitem.parent():
+                # this is a provider
+                name = serviceitem.text(0)
+                data = json.loads(serviceitem.data(0,QtCore.Qt.UserRole))
+                if 'custom' in data:
+                    reply = QtGui.QMessageBox.question(None,
+                                                       "Removal warning",
+                                                       "Remove provider \""+name+"\"? This cannot be undone.",
+                                                       QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+                                                       QtGui.QMessageBox.No)
+                    if reply == QtGui.QMessageBox.Yes:
+                        delete_custom_provider(data['listUrl'])
+                        QtCore.QTimer.singleShot(0,self.onScan)
 
     def onAuthenticate(self):
 
+        "Opens a browser window to authenticate"
+
+        self.form.groupAuthenticate.show()
+        serviceitem = self.form.servicesList.currentItem()
+        if serviceitem:
+            if serviceitem.parent():
+                # this is a service
+                service_data = json.loads(serviceitem.data(0,QtCore.Qt.UserRole))
+                if "oauth" in service_data:
+                    if "registerUrl" in service_data['oauth']:
+                        step1 = authenticate_step_1(service_data['oauth']['registerUrl'])
+                        if step1:
+                            auth_url = service_data['oauth']['authorizationUrl']
+                            client_id = step1['client_id']
+                            service_name = service_data['name']
+                            step2 = authenticate_step_2(auth_url,client_id,service_name)
+                            if step2 == True:
+                                return
+                            msg = "Unable to open a web browser. Please paste the following URL in your web browser: " + step2
+                            QtGui.QMessageBox.information(None,"Error",msg)
+        print("Error: Unable to start authentication!")
+
+    def onSaveAuthenticate(self):
+
         "Authenticates with the selected service and updates the Available Services list"
 
-        pass
+        service_url = self.form.lineEditAuthenticateUrl.text()
+        token = self.form.lineEditAuthenticateToken.text()
+        if service_url and token:
+            serviceitem = self.form.servicesList.currentItem()
+            if serviceitem:
+                if serviceitem.parent():
+                    # this is a service
+                    provider_data = json.loads(serviceitem.parent().data(0,QtCore.Qt.UserRole))
+                    provider_url = provider_data['listUrl']
+                    service_data = json.loads(serviceitem.data(0,QtCore.Qt.UserRole))
+                    service_id = service_data['id']
+                    service_name = service_data['name']
+                    save_authentication(provider_url,service_id,service_name,service_url,token)
+                    self.form.groupAuthenticate.hide()
+                    QtCore.QTimer.singleShot(0,self.onScan)
+                    return
+        print("Error: Unable to register authentication!")
 
     def onRun(self):
 
@@ -635,23 +756,16 @@ class bimbots_panel:
 
 
 
-#############   Detect FreeCAD and run as a macro
+#############   If we're inside FreeCAD, show the GUI
 
 
-try:
-    import FreeCAD
-except:
-    if VERBOSE:
-        print("FreeCAD not available")
-else:
-    if FreeCAD.GuiUp:
-        # We are running inside FreeCAD: show the UI
-        launch_ui()
+if run_as_macro:
+    # We are running inside FreeCAD: show the UI
+    launch_ui()
 
 
-#############   Print a list of available services, if run from the command line
+#############   If running from the command line, print a list of available services
 
 
 if __name__ == "__main__":
-
     print_services()
