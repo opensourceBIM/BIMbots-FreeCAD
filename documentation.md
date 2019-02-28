@@ -1,5 +1,3 @@
-FreeCAD not available
-FreeCAD not available
 Module bimbots
 ==============
 This module provides tools to communicate with BIMbots services, and
