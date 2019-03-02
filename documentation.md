@@ -2,7 +2,7 @@ Module bimbots
 ==============
 This module provides tools to communicate with BIMbots services, and
 a FreeCAD GUI, that autoruns if this module is executed as a FreeCAD macro or
-simply imported from the FreeCAD Python console. If run from the command line, 
+simply imported from the FreeCAD Python console. If run from the command line,
 it prints a summary of available (and reachable) BIMbots services.
 
 Functions
@@ -57,8 +57,14 @@ Functions
 `save_default_config()`
 :   Saves the default settings to the config file. Returns nothing
 
+`send_ifc_payload(provider_url, service_id, file_path)`
+:   Sends a given IFC file to the given service. Returns the json response as a dict
+
 `send_test_payload(provider_url, service_id)`
 :   Sends a test IFC file to the given service. Returns the json response as a dict
+
+`tostr(something)`
+:   
 
 Classes
 -------
@@ -72,41 +78,47 @@ Classes
     `__init__(self)`
     :   Initialize self.  See help(type(self)) for accurate signature.
 
-    `getDefaults(self)`
-    :   Sets the state of different widgets from previously saved state
+    `fill_item(self, item, value, link=False)`
+    :
 
     `getStandardButtons(self)`
     :   The list of buttons to show above the task panel
 
-    `onAddService(self)`
+    `get_defaults(self)`
+    :   Sets the state of different widgets from previously saved state
+
+    `needsFullSpace(self)`
+    :   Notifies FreeCAD that this panel needs max height
+
+    `on_add_service(self)`
     :   Adds a custom service provider and its services and updates the Available Services list
 
-    `onAuthenticate(self)`
+    `on_authenticate(self)`
     :   Opens a browser window to authenticate
 
-    `onCancel(self)`
+    `on_cancel(self)`
     :   Cancels the current operation
 
-    `onListClick(self, arg1=None, arg2=None)`
+    `on_list_click(self, arg1=None, arg2=None)`
     :   Checks which items are selected and what options should be enabled. Args not used
 
-    `onRemoveService(self)`
+    `on_remove_service(self)`
     :   Removes a custom service provider from the config
 
-    `onRun(self)`
+    `on_run(self)`
     :   Runs the selected service
 
-    `onSaveAuthenticate(self)`
+    `on_save_authenticate(self)`
     :   Authenticates with the selected service and updates the Available Services list
 
-    `onScan(self)`
+    `on_scan(self)`
     :   Scans for providers and services and updates the Available Services list
 
     `reject(self)`
     :   Called when the dialog is closed
 
-    `saveDefaults(self, arg=None)`
+    `save_defaults(self, arg=None)`
     :   Save the state of different widgets. Arg not used
 
-    `validateFields(self, arg)`
+    `validate_fields(self, arg)`
     :   Validates the editable fields, turn buttons on/off as needed. Arg not used

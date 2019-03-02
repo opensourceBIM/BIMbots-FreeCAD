@@ -28,26 +28,31 @@
 
 """This module provides tools to communicate with BIMbots services, and
 a FreeCAD GUI, that autoruns if this module is executed as a FreeCAD macro or
-simply imported from the FreeCAD Python console. If run from the command line, 
+simply imported from the FreeCAD Python console. If run from the command line,
 it prints a summary of available (and reachable) BIMbots services."""
 
 from __future__ import print_function # this code is compatible with python 2 and 3
 
 import os, sys, requests, json
 
-# python2 / python3 differences
+# python2 / python3 compatibility tweaks
 if sys.version_info.major < 3:
     import urllib
     from urllib import urlencode
+    def tostr(something):
+        return unicode(something)
 else:
     import urllib.parse
     from urllib.parse import urlencode
+    def tostr(something):
+        return str(something)
 
 #############   Configuration defaults
 
 # the following values are not written in the config file:
 CONFIG_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens - TODO use something nicer for windows? Use FreeCAD?
 VERBOSE = True # If True, debug messages are printed. If not, everything fails silently
+DECAMELIZE = True # if True, variable names appear de-camelized in results
 
 # the following values can be overwritten in the config file:
 SERVICES_URL = "https://raw.githubusercontent.com/opensourceBIM/BIMserver-Repository/master/serviceproviders.json"
@@ -397,9 +402,9 @@ def beautyprint(data):
     print(data)
 
 
-def send_test_payload(provider_url,service_id):
+def send_ifc_payload(provider_url,service_id,file_path):
 
-    "Sends a test IFC file to the given service. Returns the json response as a dict"
+    "Sends a given IFC file to the given service. Returns the json response as a dict"
 
     service = get_service_config(provider_url,service_id)
     if service:
@@ -410,13 +415,12 @@ def send_test_payload(provider_url,service_id):
         }
         #if "Context-Id" in service: # this model has already been uploaded before. TODO - This should be stored per model, not per service
         #    headers['Context-Id'] = service['Context-Id']
-        payload_file = os.path.join(os.path.dirname(__file__),"test payload.ifc")
-        if os.path.exists(payload_file):
-            with open(payload_file) as file_stream:
+        if os.path.exists(file_path):
+            with open(file_path) as file_stream:
                 data = file_stream.read()
         else:
             if VERBOSE:
-                print("Error: unable to load test payload IFC file. Aborting")
+                print("Error: unable to load payload IFC file from",file_path,". Aborting")
             return {}
         try:
             response = requests.post(service['service_url'],headers=headers,data=data,timeout=get_config_value("connection_timeout"))
@@ -444,6 +448,14 @@ def send_test_payload(provider_url,service_id):
         if VERBOSE:
             print("No authentication token found for this service. Aborting.")
         return {}
+
+
+def send_test_payload(provider_url,service_id):
+
+    "Sends a test IFC file to the given service. Returns the json response as a dict"
+    
+    payload_file = os.path.join(os.path.dirname(__file__),"test payload.ifc")
+    return send_ifc_payload(provider_url,service_id,payload_file)
 
 
 
@@ -477,6 +489,8 @@ class bimbots_panel:
         h = int(w*0.2578)
         self.form.labelLogo.setText("")
         self.form.labelLogo.setPixmap(logo.scaled(w,h))
+        # hide the logo for now TODO : Do something better here...
+        self.form.labelLogo.hide()
 
         # hide the collapsible parts
         self.form.groupProgress.hide()
@@ -486,40 +500,43 @@ class bimbots_panel:
         self.form.groupResults.hide()
 
         # restore default settings
-        self.getDefaults()
+        self.get_defaults()
 
         # connect buttons
         self.form.buttonRescan.clicked.connect(self.form.groupRescan.show)
         self.form.buttonDoRescan.clicked.connect(self.form.groupRescan.hide)
-        self.form.buttonDoRescan.clicked.connect(self.onScan)
+        self.form.buttonDoRescan.clicked.connect(self.on_scan)
         self.form.buttonCancelRescan.clicked.connect(self.form.groupRescan.hide)
         self.form.buttonAddService.clicked.connect(self.form.groupAddService.show)
-        self.form.buttonRemoveService.clicked.connect(self.onRemoveService)
-        self.form.buttonSaveService.clicked.connect(self.onAddService)
+        self.form.buttonRemoveService.clicked.connect(self.on_remove_service)
+        self.form.buttonSaveService.clicked.connect(self.on_add_service)
         self.form.buttonCancelService.clicked.connect(self.form.groupAddService.hide)
         self.form.buttonAuthenticate.clicked.connect(self.form.groupAuthenticate.show)
-        self.form.buttonAuthenticate.clicked.connect(self.onAuthenticate)
-        self.form.buttonSaveAuthenticate.clicked.connect(self.onSaveAuthenticate)
+        self.form.buttonAuthenticate.clicked.connect(self.on_authenticate)
+        self.form.buttonSaveAuthenticate.clicked.connect(self.on_save_authenticate)
         self.form.buttonCancelAuthenticate.clicked.connect(self.form.groupAuthenticate.hide)
-        self.form.buttonRun.clicked.connect(self.onRun)
-        self.form.buttonCancelProgress.clicked.connect(self.onCancel)
+        self.form.buttonRun.clicked.connect(self.on_run)
+        self.form.buttonCancelProgress.clicked.connect(self.on_cancel)
+        self.form.buttonCloseResults.clicked.connect(self.form.groupServices.show)
+        self.form.buttonCloseResults.clicked.connect(self.form.groupRun.show)
+        self.form.buttonCloseResults.clicked.connect(self.form.groupResults.hide)
 
         # fields validation
-        self.form.lineEditServiceName.textChanged.connect(self.validateFields)
-        self.form.lineEditServiceUrl.textChanged.connect(self.validateFields)
-        self.form.lineEditAuthenticateUrl.textChanged.connect(self.validateFields)
-        self.form.lineEditAuthenticateToken.textChanged.connect(self.validateFields)
+        self.form.lineEditServiceName.textChanged.connect(self.validate_fields)
+        self.form.lineEditServiceUrl.textChanged.connect(self.validate_fields)
+        self.form.lineEditAuthenticateUrl.textChanged.connect(self.validate_fields)
+        self.form.lineEditAuthenticateToken.textChanged.connect(self.validate_fields)
 
         # connect services list
-        self.form.servicesList.currentItemChanged.connect(self.onListClick)
-        self.form.scopeList.currentItemChanged.connect(self.onListClick)
+        self.form.servicesList.currentItemChanged.connect(self.on_list_click)
+        self.form.scopeList.currentItemChanged.connect(self.on_list_click)
 
         # connect widgets that should remember their setting
-        self.form.checkAutoDiscover.stateChanged.connect(self.saveDefaults)
-        self.form.checkShowUnreachable.stateChanged.connect(self.saveDefaults)
+        self.form.checkAutoDiscover.stateChanged.connect(self.save_defaults)
+        self.form.checkShowUnreachable.stateChanged.connect(self.save_defaults)
 
         # perform initial scan after the UI has been fully drawn
-        QtCore.QTimer.singleShot(0,self.onScan)
+        QtCore.QTimer.singleShot(0,self.on_scan)
 
 
     def getStandardButtons(self):
@@ -528,6 +545,11 @@ class bimbots_panel:
 
         return int(QtGui.QDialogButtonBox.Close)
 
+    def needsFullSpace(self):
+
+        "Notifies FreeCAD that this panel needs max height"
+
+        return True
 
     def reject(self):
 
@@ -538,7 +560,7 @@ class bimbots_panel:
             FreeCAD.ActiveDocument.recompute()
 
 
-    def onScan(self):
+    def on_scan(self):
 
         "Scans for providers and services and updates the Available Services list"
 
@@ -613,7 +635,7 @@ class bimbots_panel:
         self.form.groupRescan.hide()
 
 
-    def onListClick(self,arg1=None,arg2=None):
+    def on_list_click(self,arg1=None,arg2=None):
 
         "Checks which items are selected and what options should be enabled. Args not used"
 
@@ -623,10 +645,13 @@ class bimbots_panel:
         self.form.buttonRun.setEnabled(False)
         serviceitem = self.form.servicesList.currentItem()
         scopeitem = self.form.scopeList.currentItem()
+        if scopeitem.text() == "Test output only":
+            # this is a test item that doesn't send data toany service
+            self.form.buttonRun.setEnabled(True)
         if serviceitem:
             if serviceitem.parent():
                 # this is a service
-                self.form.buttonAuthenticate.setEnabled(True)
+                self.form.button_authenticate.setEnabled(True)
                 if "Authenticated" in serviceitem.toolTip(0):
                     if scopeitem:
                         self.form.buttonRun.setEnabled(True)
@@ -635,7 +660,7 @@ class bimbots_panel:
                 if 'custom' in json.loads(serviceitem.data(0,QtCore.Qt.UserRole)):
                     self.form.buttonRemoveService.setEnabled(True)
 
-    def validateFields(self,arg):
+    def validate_fields(self,arg):
 
         "Validates the editable fields, turn buttons on/off as needed. Arg not used"
 
@@ -649,7 +674,7 @@ class bimbots_panel:
         if self.form.lineEditAuthenticateUrl.text() and self.form.lineEditAuthenticateToken.text():
             self.form.buttonSaveAuthenticate.setEnabled(True)
 
-    def onAddService(self):
+    def on_add_service(self):
 
         "Adds a custom service provider and its services and updates the Available Services list"
 
@@ -658,9 +683,9 @@ class bimbots_panel:
         if name and url:
             save_custom_provider(name,url)
             self.form.groupAddService.hide()
-            QtCore.QTimer.singleShot(0,self.onScan)
+            QtCore.QTimer.singleShot(0,self.on_scan)
 
-    def onRemoveService(self):
+    def on_remove_service(self):
 
         "Removes a custom service provider from the config"
 
@@ -678,9 +703,9 @@ class bimbots_panel:
                                                        QtGui.QMessageBox.No)
                     if reply == QtGui.QMessageBox.Yes:
                         delete_custom_provider(data['listUrl'])
-                        QtCore.QTimer.singleShot(0,self.onScan)
+                        QtCore.QTimer.singleShot(0,self.on_scan)
 
-    def onAuthenticate(self):
+    def on_authenticate(self):
 
         "Opens a browser window to authenticate"
 
@@ -704,7 +729,7 @@ class bimbots_panel:
                             QtGui.QMessageBox.information(None,"Error",msg)
         print("Error: Unable to start authentication!")
 
-    def onSaveAuthenticate(self):
+    def on_save_authenticate(self):
 
         "Authenticates with the selected service and updates the Available Services list"
 
@@ -722,23 +747,110 @@ class bimbots_panel:
                     service_name = service_data['name']
                     save_authentication(provider_url,service_id,service_name,service_url,token)
                     self.form.groupAuthenticate.hide()
-                    QtCore.QTimer.singleShot(0,self.onScan)
+                    QtCore.QTimer.singleShot(0,self.on_scan)
                     return
         print("Error: Unable to register authentication!")
 
-    def onRun(self):
+    def on_run(self):
 
         "Runs the selected service"
 
-        pass
+        results = None
+        serviceitem = self.form.servicesList.currentItem()
+        scopeitem = self.form.scopeList.currentItem()
+        if scopeitem.text() == "Test output only":
+            # Test item - don't run any service, just show dummy results from file
+            payload_response = os.path.join(os.path.dirname(__file__),"test payload response.json")
+            if os.path.exists(payload_response):
+                with open(payload_response) as json_file:
+                    results = json.load(json_file)
+        elif serviceitem:
+            if serviceitem.parent():
+                # this is a service
+                if "Authenticated" in serviceitem.toolTip(0):
+                    if scopeitem:
+                        # we have scope and authenticated service: let's run!
+                        self.running = True
+                        # setup the progress bar
+                        self.form.groupProgress.show()
+                        self.form.progressBar.setFormat("Preparing")
+                        self.form.progressBar.setValue(25)
+                        provider_data = json.loads(serviceitem.parent().data(0,QtCore.Qt.UserRole))
+                        provider_url = provider_data['listUrl']
+                        service_data = json.loads(serviceitem.data(0,QtCore.Qt.UserRole))
+                        service_id = service_data['id']
+                        if scopeitem.text() == "Test payload":
+                            # no need to check for current document if running a test payload
+                            self.form.progressBar.setFormat("Sending data")
+                            self.form.progressBar.setValue(75)
+                            result = send_test_payload(provider_url,service_id)
 
-    def onCancel(self):
+        # show the results
+        self.form.groupProgress.hide()
+        if results:
+            self.form.groupServices.hide()
+            self.form.groupRun.hide()
+            self.form.groupResults.show()
+            if isinstance(results,dict):
+                # json results
+                self.form.textResults.hide()
+                self.form.treeResults.show()
+                self.form.treeResults.clear()
+                self.fill_item(self.form.treeResults.invisibleRootItem(), results)
+            else:
+                # text results
+                self.form.textResults.show()
+                self.form.treeResults.hide()
+        else:
+            FreeCAD.Console.PrintError("Error: No results obtained\n")
+
+    def fill_item(self, item, value, link = False):
+
+        # adapted from https://stackoverflow.com/questions/21805047/qtreewidget-to-mirror-python-dictionary
+        item.setExpanded(True)
+        if isinstance(value,dict):
+            for key, val in sorted(value.items()):
+                child = QtGui.QTreeWidgetItem()
+                item.addChild(child)
+                child.setExpanded(True)
+                if tostr(key).lower().startswith("ifc"):
+                    palette = QtGui.QApplication.palette()
+                    child.setForeground(0,palette.brush(palette.Active,palette.Link))
+                    child.setToolTip(0,"link:"+tostr(key))
+                if DECAMELIZE:
+                    key = ''.join(map(lambda x: x if x.islower() else " "+x, key)).strip()
+                child.setText(0, tostr(key))
+                childlink = link
+                if (tostr(key).lower() == "guid") \
+                or ((tostr(key).lower() == "name") and (tostr(val) != tostr(val).upper())) \
+                or ((tostr(key).lower() == "type") and (tostr(val).lower().startswith("ifc"))):
+                    childlink = True
+                self.fill_item(child, val, childlink)
+        elif isinstance(value,list):
+            for index,val in enumerate(value):
+                child = QtGui.QTreeWidgetItem()
+                item.addChild(child)
+                child.setExpanded(True)
+                child.setText(0, tostr(index))
+                self.fill_item(child, val)
+        else:
+            item.setText(1, tostr(value))
+            if link:
+                palette = QtGui.QApplication.palette()
+                item.setForeground(1,palette.brush(palette.Active,palette.Link))
+                item.setToolTip(1,"link:"+tostr(value))
+
+
+
+
+
+    def on_cancel(self):
 
         "Cancels the current operation"
 
         self.running = False
 
-    def getDefaults(self):
+    def get_defaults(self):
 
         "Sets the state of different widgets from previously saved state"
 
@@ -746,7 +858,7 @@ class bimbots_panel:
         self.form.checkAutoDiscover.setChecked(settings.GetBool("checkAutoDiscover",True))
         self.form.checkShowUnreachable.setChecked(settings.GetBool("checkShowUnreachable",True))
 
-    def saveDefaults(self,arg=None):
+    def save_defaults(self,arg=None):
 
         "Save the state of different widgets. Arg not used"
 
