@@ -330,7 +330,7 @@
          <bool>false</bool>
         </property>
         <property name="toolTip">
-         <string>Authenticates with a selected service. Opens a web browser window.</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Authenticates with a selected service. Opens a web browser window.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If unable to obtain a token, you might need to add internal services to your account under &amp;quot;User Settings&amp;quot; in the BIMServer panel &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
          <string>Authenticate</string>
@@ -498,7 +498,7 @@
          <bool>false</bool>
         </property>
         <property name="toolTip">
-         <string>Runs the selected service and displays the results</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Runs the selected service and displays the results&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If unable to obtain a response, you might need to add deserializers to your account under &amp;quot;User Settings&amp;quot; in the BIMServer panel &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
          <string>Run service</string>

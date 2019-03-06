@@ -24,15 +24,15 @@ When running inside FreeCAD:
 * Add/remove custom servers
 * Authenticate with services
 * Display test JSON output
+* Display output of test payload
 
 #### To do:
 
-* Display output of test payload
 * Implement sending of "real" IFC files
-* Implemente display of TEXT output
-* Implement display of BCF output
+* Implement double-clicking of JSON output to FreeCAD objects
 * Write user (GUI) documentation
 * Save the config file to something better than ~/.bimbots on windows
+* Implement display of BCF output
 
 #### How to test
 

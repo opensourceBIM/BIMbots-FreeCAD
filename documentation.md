@@ -79,7 +79,7 @@ Classes
     :   Initialize self.  See help(type(self)) for accurate signature.
 
     `fill_item(self, item, value, link=False)`
-    :
+    :   fills a QtreeWidget or QtreeWidgetItem with a dict, list or value. If link is true, paints in link color
 
     `getStandardButtons(self)`
     :   The list of buttons to show above the task panel

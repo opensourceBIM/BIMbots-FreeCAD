@@ -33,7 +33,9 @@ it prints a summary of available (and reachable) BIMbots services."""
 
 from __future__ import print_function # this code is compatible with python 2 and 3
 
-import os, sys, requests, json
+import os, sys, tempfile # builtin python modules
+import requests
+import json
 
 # python2 / python3 compatibility tweaks
 if sys.version_info.major < 3:
@@ -51,7 +53,7 @@ else:
 
 # the following values are not written in the config file:
 CONFIG_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens - TODO use something nicer for windows? Use FreeCAD?
-VERBOSE = True # If True, debug messages are printed. If not, everything fails silently
+DEBUG = True # If True, debug messages are printed, and test items are added to the UI. If not, everything happens (and fails) silently
 DECAMELIZE = True # if True, variable names appear de-camelized in results
 
 # the following values can be overwritten in the config file:
@@ -67,8 +69,7 @@ run_as_macro = False
 try:
     import FreeCAD
 except:
-    if VERBOSE:
-        print("FreeCAD not available")
+    pass
 else:
     if FreeCAD.GuiUp:
         import FreeCADGui
@@ -113,11 +114,11 @@ def read_config():
 
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE) as json_file:
-            if VERBOSE:
+            if DEBUG:
                 print("Reading config from",CONFIG_FILE)
             data = json.load(json_file)
             return data
-    elif VERBOSE:
+    elif DEBUG:
         print("No config file found at",CONFIG_FILE)
     return {'config':{},'services':[]}
 
@@ -132,7 +133,7 @@ def get_config_value(value):
     elif value.upper() in globals():
         return globals()[value.upper()]
     else:
-        if VERBOSE:
+        if DEBUG:
             print("Value",value,"not found in config or default settings")
         return None
 
@@ -141,11 +142,11 @@ def save_config(config):
 
     "Saves the given dict to the config file. Overwrites everything, be careful! Returns nothing."
 
-    if os.path.exists(CONFIG_FILE) and VERBOSE:
+    if os.path.exists(CONFIG_FILE) and DEBUG:
         print("Config file",CONFIG_FILE,"not found. Creating a new one.")
     with open(CONFIG_FILE, 'w') as json_file:
         json.dump(config, json_file)
-        if VERBOSE:
+        if DEBUG:
             print("Saved config to",CONFIG_FILE)
 
 
@@ -169,7 +170,7 @@ def save_authentication(provider_url,service_id,service_name,service_url,token):
             "token": token
         }
         config['services'].append(data)
-    if VERBOSE:
+    if DEBUG:
         print("Saving config:",config)
     save_config(config)
 
@@ -243,7 +244,7 @@ def delete_custom_provider(list_url):
             config['providers'] = providers
             save_config(config)
             return
-    if VERBOSE:
+    if DEBUG:
         print("Error: Provider not found in config:",list_url)
 
 
@@ -263,7 +264,7 @@ def get_service_providers(autodiscover=True,url=None):
     try:
         response = requests.get(url,timeout=get_config_value("connection_timeout"))
     except:
-        if VERBOSE:
+        if DEBUG:
             print("Error: unable to connect to service providers list at",url)
         return providers
     if response.ok:
@@ -277,11 +278,11 @@ def get_service_providers(autodiscover=True,url=None):
                     providers.append(default)
             return providers
         except:
-            if VERBOSE:
+            if DEBUG:
                 print("Error: unable to read service providers list from",url)
             return providers
     else:
-        if VERBOSE:
+        if DEBUG:
             print("Error: unable to fetch service providers list from",url)
         return providers
 
@@ -293,18 +294,26 @@ def get_services(list_url):
     try:
         response = requests.get(list_url,timeout=get_config_value("connection_timeout"))
     except:
-        if VERBOSE:
+        if DEBUG:
             print("Error: unable to connect to service provider at",list_url)
         return []
     if response.ok:
         try:
             return response.json()['services']
         except:
-            if VERBOSE:
-                print("Error: unable to read services list from",list_url)
-            return []
+            if list_url.endswith("servicelist"):
+                if DEBUG:
+                    print("Error: unable to read services list from",list_url)
+                return []
+            else:
+                # try again adding /servicelist to the URL. Users might have saved just the server URL
+                # and we don't want to bother them with petty details...
+                if list_url.endswith("/"):
+                    return get_services(list_url+"servicelist")
+                else:
+                    return get_services(list_url+"/servicelist")
     else:
-        if VERBOSE:
+        if DEBUG:
             print("Error: unable to fetch services list from",list_url)
         return []
 
@@ -326,18 +335,18 @@ def authenticate_step_1(register_url):
         # using json= instead of data= provides headers automatically
         response = requests.post(url=register_url,json=data)
     except:
-        if VERBOSE:
+        if DEBUG:
             print("Error: unable to send authentication request for ",register_url)
         return None
     if response.ok:
         try:
             return response.json()
         except:
-            if VERBOSE:
+            if DEBUG:
                 print("Error: unable to read authentication data from",register_url)
             return None
     else:
-        if VERBOSE:
+        if DEBUG:
             print("Error: unable to fetch authentication data from",register_url)
         return None
 
@@ -407,6 +416,8 @@ def send_ifc_payload(provider_url,service_id,file_path):
     "Sends a given IFC file to the given service. Returns the json response as a dict"
 
     service = get_service_config(provider_url,service_id)
+    if DEBUG:
+        print("Sending",file_path,"to",provider_url,"service",service_id,"...")
     if service:
         headers = {
             "Input-Type": "IFC_STEP_2X3TC1",
@@ -419,13 +430,13 @@ def send_ifc_payload(provider_url,service_id,file_path):
             with open(file_path) as file_stream:
                 data = file_stream.read()
         else:
-            if VERBOSE:
+            if DEBUG:
                 print("Error: unable to load payload IFC file from",file_path,". Aborting")
             return {}
         try:
             response = requests.post(service['service_url'],headers=headers,data=data,timeout=get_config_value("connection_timeout"))
         except:
-            if VERBOSE:
+            if DEBUG:
                 print("Error: unable to connect to service provider at",service['service_url'])
             return {}
         if response.ok:
@@ -433,19 +444,26 @@ def send_ifc_payload(provider_url,service_id,file_path):
                 res = response.json()
                 # TODO get headers too, get Context-Id
             except:
-                if VERBOSE:
-                    print("Error: unable to read response from service",service_id,"at",service['service_url'])
-                return {}
+                try:
+                    text = response.content
+                except:
+                    if DEBUG:
+                        print(response)
+                        print("Error: unable to read response from service",service_id,"at",service['service_url'])
+                    return None
+                else:
+                    return text
             else:
                 if ("message" in res) and ("error" in res['message'].lower()) and ("code" in res):
                     print("This payload has been rejected by the server, with the following error: Error code",res['code'],":",res['message'])
+                    return {}
                 return res
         else:
-            if VERBOSE:
+            if DEBUG:
                 print("Error: unable to fetch response from service",service_id,"at",service['service_url'])
             return {}
     else:
-        if VERBOSE:
+        if DEBUG:
             print("No authentication token found for this service. Aborting.")
         return {}
 
@@ -537,7 +555,11 @@ class bimbots_panel:
 
         # perform initial scan after the UI has been fully drawn
         QtCore.QTimer.singleShot(0,self.on_scan)
-
+        
+        # remove test items if needed
+        if not DEBUG:
+            self.form.scopeList.takeItem(4) # Trst output only
+            self.form.scopeList.takeItem(3) # Test payload
 
     def getStandardButtons(self):
 
@@ -645,13 +667,14 @@ class bimbots_panel:
         self.form.buttonRun.setEnabled(False)
         serviceitem = self.form.servicesList.currentItem()
         scopeitem = self.form.scopeList.currentItem()
-        if scopeitem.text() == "Test output only":
-            # this is a test item that doesn't send data toany service
-            self.form.buttonRun.setEnabled(True)
+        if scopeitem:
+            if scopeitem.text() == "Test output only":
+                # this is a test item that doesn't send data toany service
+                self.form.buttonRun.setEnabled(True)
         if serviceitem:
             if serviceitem.parent():
                 # this is a service
-                self.form.button_authenticate.setEnabled(True)
+                self.form.buttonAuthenticate.setEnabled(True)
                 if "Authenticated" in serviceitem.toolTip(0):
                     if scopeitem:
                         self.form.buttonRun.setEnabled(True)
@@ -710,6 +733,8 @@ class bimbots_panel:
         "Opens a browser window to authenticate"
 
         self.form.groupAuthenticate.show()
+        self.form.lineEditAuthenticateToken.clear()
+        self.form.lineEditAuthenticateUrl.clear()
         serviceitem = self.form.servicesList.currentItem()
         if serviceitem:
             if serviceitem.parent():
@@ -758,32 +783,51 @@ class bimbots_panel:
         results = None
         serviceitem = self.form.servicesList.currentItem()
         scopeitem = self.form.scopeList.currentItem()
-        if scopeitem.text() == "Test output only":
-            # Test item - don't run any service, just show dummy results from file
-            payload_response = os.path.join(os.path.dirname(__file__),"test payload response.json")
-            if os.path.exists(payload_response):
-                with open(payload_response) as json_file:
-                    results = json.load(json_file)
-        elif serviceitem:
-            if serviceitem.parent():
-                # this is a service
-                if "Authenticated" in serviceitem.toolTip(0):
-                    if scopeitem:
-                        # we have scope and authenticated service: let's run!
-                        self.running = True
-                        # setup the progress bar
-                        self.form.groupProgress.show()
-                        self.form.progressBar.setFormat("Preparing")
-                        self.form.progressBar.setValue(25)
-                        provider_data = json.loads(serviceitem.parent().data(0,QtCore.Qt.UserRole))
-                        provider_url = provider_data['listUrl']
-                        service_data = json.loads(serviceitem.data(0,QtCore.Qt.UserRole))
-                        service_id = service_data['id']
-                        if scopeitem.text() == "Test payload":
-                            # no need to check for current document if running a test payload
-                            self.form.progressBar.setFormat("Sending data")
-                            self.form.progressBar.setValue(75)
-                            result = send_test_payload(provider_url,service_id)
+        service_data = None
+        if scopeitem:
+            if scopeitem.text() == "Test output only":
+                # Test item - don't run any service, just show dummy results from file
+                payload_response = os.path.join(os.path.dirname(__file__),"test payload response.json")
+                if os.path.exists(payload_response):
+                    with open(payload_response) as json_file:
+                        results = json.load(json_file)
+            elif serviceitem:
+                if serviceitem.parent():
+                    # this is a service
+                    if "Authenticated" in serviceitem.toolTip(0):
+                        if scopeitem:
+                            # we have scope and authenticated service: let's run!
+                            self.running = True
+                            # setup the progress bar
+                            self.form.groupProgress.show()
+                            self.form.progressBar.setFormat("Preparing")
+                            self.form.progressBar.setValue(25)
+                            provider_data = json.loads(serviceitem.parent().data(0,QtCore.Qt.UserRole))
+                            provider_url = provider_data['listUrl']
+                            service_data = json.loads(serviceitem.data(0,QtCore.Qt.UserRole))
+                            service_id = service_data['id']
+                            if scopeitem.text() == "Test payload":
+                                # no need to check for current document if running a test payload
+                                self.form.progressBar.setFormat("Sending data")
+                                self.form.progressBar.setValue(75)
+                                results = send_test_payload(provider_url,service_id)
+                            else:
+                                if FreeCAD.ActiveDocument:
+                                    objectslist = []
+                                    self.form.progressBar.setFormat("Saving IFC file")
+                                    self.form.progressBar.setValue(25)
+                                    if scopeitem.text() == "Selected objects":
+                                        objectslist = FreeCADGui.Selection.getSelection()
+                                    elif scopeitem.text() == "All visible objects":
+                                        objectslist = [o for o in FreeCAD.ActiveDocument.Objects if o.ViewObject and hasattr(o.ViewObject,"Visibility") and o.ViewObject.Visibility]
+                                    else:
+                                        objectslist = FreeCAD.ActiveDocument.Objects
+                                    if objectslist:
+                                        file_path = self.save_ifc(objectslist)
+                                        if file_path:
+                                            self.form.progressBar.setFormat("Sending data")
+                                            self.form.progressBar.setValue(75)
+                                            results = send_ifc_payload(provider_url,service_id,file_path)
 
         # show the results
         self.form.groupProgress.hide()
@@ -799,12 +843,27 @@ class bimbots_panel:
                 self.fill_item(self.form.treeResults.invisibleRootItem(), results)
             else:
                 # text results
+                if service_data:
+                    # detect if this is a BCF file - we just analyze the first output type for now
+                    if ("outputs" in service_data) and service_data["outputs"] and ("BCF" in service_data["outputs"][0]):
+                        # BCF results
+                        zipfile = tempfile.mkstemp(suffix=".bcf.zip")[1]
+                        f = open(zipfile,"wb")
+                        f.write(results)
+                        f.close()
+                        results = "BCF results saved as "+zipfile
+                if DEBUG:
+                    print("Results:",results)
                 self.form.textResults.show()
                 self.form.treeResults.hide()
+                self.form.textResults.clear()
+                self.form.textResults.setPlainText(results)
         else:
             FreeCAD.Console.PrintError("Error: No results obtained\n")
 
-    def fill_item(self, item, value, link = False):
+    def fill_item(self, item, value, link=False):
+        
+        "fills a QtreeWidget or QtreeWidgetItem with a dict, list or value. If link is true, paints in link color"
 
         # adapted from https://stackoverflow.com/questions/21805047/qtreewidget-to-mirror-python-dictionary
         item.setExpanded(True)
@@ -839,10 +898,6 @@ class bimbots_panel:
                 palette = QtGui.QApplication.palette()
                 item.setForeground(1,palette.brush(palette.Active,palette.Link))
                 item.setToolTip(1,"link:"+tostr(value))
-
-
-
-
 
     def on_cancel(self):
 
