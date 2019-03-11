@@ -99,6 +99,9 @@ Classes
     `on_cancel(self)`
     :   Cancels the current operation
 
+    `on_click_results(self, item, col)`
+    :   Selects associated objects in document when an item is clicked
+
     `on_list_click(self, arg1=None, arg2=None)`
     :   Checks which items are selected and what options should be enabled. Args not used
 
@@ -119,6 +122,9 @@ Classes
 
     `save_defaults(self, arg=None)`
     :   Save the state of different widgets. Arg not used
+
+    `save_ifc(self, objectslist)`
+    :   Saves an IFC file to a temporary location
 
     `validate_fields(self, arg)`
     :   Validates the editable fields, turn buttons on/off as needed. Arg not used

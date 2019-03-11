@@ -422,7 +422,7 @@ def send_ifc_payload(provider_url,service_id,file_path):
         headers = {
             "Input-Type": "IFC_STEP_2X3TC1",
             "Token": service['token'],
-            "Accept-Flow": "ASYNC_WS, SYNC" # preferred workflow - To be tested
+            "Accept-Flow": "SYNC,ASYNC_WS" # preferred workflow - To be tested
         }
         #if "Context-Id" in service: # this model has already been uploaded before. TODO - This should be stored per model, not per service
         #    headers['Context-Id'] = service['Context-Id']
@@ -552,6 +552,9 @@ class bimbots_panel:
         # connect widgets that should remember their setting
         self.form.checkAutoDiscover.stateChanged.connect(self.save_defaults)
         self.form.checkShowUnreachable.stateChanged.connect(self.save_defaults)
+
+        # connect clickable links
+        self.form.treeResults.itemDoubleClicked.connect(self.on_click_results)
 
         # perform initial scan after the UI has been fully drawn
         QtCore.QTimer.singleShot(0,self.on_scan)
@@ -851,7 +854,7 @@ class bimbots_panel:
                         f = open(zipfile,"wb")
                         f.write(results)
                         f.close()
-                        results = "BCF results saved as "+zipfile
+                        results = "BCF results saved as " + zipfile + ". BCF viewing is not yet implemented."
                 if DEBUG:
                     print("Results:",results)
                 self.form.textResults.show()
@@ -875,15 +878,17 @@ class bimbots_panel:
                 if tostr(key).lower().startswith("ifc"):
                     palette = QtGui.QApplication.palette()
                     child.setForeground(0,palette.brush(palette.Active,palette.Link))
-                    child.setToolTip(0,"link:"+tostr(key))
+                    child.setToolTip(0,"typeLink:"+tostr(key))
                 if DECAMELIZE:
                     key = ''.join(map(lambda x: x if x.islower() else " "+x, key)).strip()
                 child.setText(0, tostr(key))
                 childlink = link
-                if (tostr(key).lower() == "guid") \
-                or ((tostr(key).lower() == "name") and (tostr(val) != tostr(val).upper())) \
-                or ((tostr(key).lower() == "type") and (tostr(val).lower().startswith("ifc"))):
-                    childlink = True
+                if (tostr(key).lower() == "guid"):
+                    childlink = "uuidLink:"
+                elif ((tostr(key).lower() == "name") and (tostr(val) != tostr(val).upper())):
+                    childlink = "nameLink:"
+                elif ((tostr(key).lower() == "type") and (tostr(val).lower().startswith("ifc"))):
+                    childlink = "typeLink:"
                 self.fill_item(child, val, childlink)
         elif isinstance(value,list):
             for index,val in enumerate(value):
@@ -897,7 +902,49 @@ class bimbots_panel:
             if link:
                 palette = QtGui.QApplication.palette()
                 item.setForeground(1,palette.brush(palette.Active,palette.Link))
-                item.setToolTip(1,"link:"+tostr(value))
+                item.setToolTip(1,str(link)+tostr(value))
+
+    def on_click_results(self,item,col):
+        
+        "Selects associated objects in document when an item is clicked"
+        
+        tosel = []
+        tooltip = item.toolTip(col)
+        if FreeCAD.ActiveDocument:
+            if tooltip:
+                if "Link:" in tooltip:
+                    tooltip = tooltip.split("Link:")
+                    if tooltip[0] == "uuid":
+                        for obj in FreeCAD.ActiveDocument.Objects:
+                            if hasattr(obj,"IfcAttributes"):
+                                if "IfcUID" in obj.IfcAttributes.keys():
+                                    if str(obj.IfcAttributes["IfcUID"]) == tooltip[1]:
+                                        tosel.append(obj)
+                    elif tooltip[0] == "name":
+                        for obj in FreeCAD.ActiveDocument.Objects:
+                            if obj.Label == tooltip[1]:
+                                tosel.append(obj)
+                    elif tooltip[0] == "type":
+                        if tooltip[1].lower().startswith("ifc"):
+                            ifctype = tooltip[1][3:]
+                            for obj in FreeCAD.ActiveDocument.Objects:
+                                if hasattr(obj,"IfcRole"):
+                                    if obj.IfcRole.lower().replace(" ","") == ifctype.lower():
+                                        tosel.append(obj)
+        if tosel:
+            FreeCADGui.Selection.clearSelection()
+            for obj in tosel:
+                FreeCADGui.Selection.addSelection(obj)
+
+    def save_ifc(self,objectslist):
+        
+        "Saves an IFC file to a temporary location"
+        
+        tf = tempfile.mkstemp(suffix=".ifc")[1]
+        print("Saving temporary IFC file at",tf)
+        import importIFC
+        importIFC.export(objectslist,tf)
+        return tf
 
     def on_cancel(self):
 
