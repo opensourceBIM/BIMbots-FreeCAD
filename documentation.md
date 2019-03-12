@@ -79,52 +79,52 @@ Classes
     :   Initialize self.  See help(type(self)) for accurate signature.
 
     `fill_item(self, item, value, link=False)`
-    :   fills a QtreeWidget or QtreeWidgetItem with a dict, list or value. If link is true, paints in link color
+    :   fills a QtreeWidget or QtreeWidgetItem with a dict, list or text/number value. If link is true, paints in link color. Returns nothing
 
     `getStandardButtons(self)`
-    :   The list of buttons to show above the task panel
+    :   The list of buttons to show above the task panel. Returns a Close button only.
 
     `get_defaults(self)`
-    :   Sets the state of different widgets from previously saved state
+    :   Sets the state of different widgets from previously saved state. Return nothing
 
     `needsFullSpace(self)`
-    :   Notifies FreeCAD that this panel needs max height
+    :   Notifies FreeCAD that this panel needs max height. Returns True
 
     `on_add_service(self)`
-    :   Adds a custom service provider and its services and updates the Available Services list
+    :   Adds a custom service provider and its services and updates the Available Services list. Returns nothing
 
     `on_authenticate(self)`
-    :   Opens a browser window to authenticate
+    :   Opens a browser window to authenticate. Returns nothing
 
     `on_cancel(self)`
-    :   Cancels the current operation
+    :   Cancels the current operation by setting the running flag to False. Returns nothing
 
-    `on_click_results(self, item, col)`
-    :   Selects associated objects in document when an item is clicked
+    `on_click_results(self, item, column)`
+    :   Selects associated objects in document when an item is clicked. Returns nothing
 
     `on_list_click(self, arg1=None, arg2=None)`
-    :   Checks which items are selected and what options should be enabled. Args not used
+    :   Checks which items are selected and what options should be enabled. Args not used. Returns nothing
 
     `on_remove_service(self)`
-    :   Removes a custom service provider from the config
+    :   Removes a custom service provider from the config. Returns nothing
 
     `on_run(self)`
-    :   Runs the selected service
+    :   Runs the selected service. Returns nothing
 
     `on_save_authenticate(self)`
-    :   Authenticates with the selected service and updates the Available Services list
+    :   Authenticates with the selected service and updates the Available Services list. Returns nothing
 
     `on_scan(self)`
-    :   Scans for providers and services and updates the Available Services list
+    :   Scans for providers and services and updates the Available Services list. Returns nothing
 
     `reject(self)`
-    :   Called when the dialog is closed
+    :   Called when the "Close" button of the task dialog is pressed, closes the panel. Returns nothing
 
     `save_defaults(self, arg=None)`
-    :   Save the state of different widgets. Arg not used
+    :   Save the state of different widgets. Arg not used. Returns nothing
 
     `save_ifc(self, objectslist)`
-    :   Saves an IFC file to a temporary location
+    :   Saves an IFC file with the given objects to a temporary location. Returns the file path.
 
-    `validate_fields(self, arg)`
-    :   Validates the editable fields, turn buttons on/off as needed. Arg not used
+    `validate_fields(self, arg=None)`
+    :   Validates the editable fields, turn buttons on/off as needed. Arg not used. Returns nothing
