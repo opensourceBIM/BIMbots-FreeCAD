@@ -39,14 +39,18 @@ import json
 
 # python2 / python3 compatibility tweaks
 if sys.version_info.major < 3:
+    # Python 2
     import urllib
     from urllib import urlencode
     def tostr(something):
+        "a convenience function to unify py2/py3 conversion to string (py3 version)"
         return unicode(something)
 else:
+    # Python 3
     import urllib.parse
     from urllib.parse import urlencode
     def tostr(something):
+        "a convenience function to unify py2/py3 conversion to string (py2 version)"
         return str(something)
 
 #############   Configuration defaults
@@ -561,8 +565,9 @@ class bimbots_panel:
         
         # remove test items if needed
         if not DEBUG:
-            self.form.scopeList.takeItem(4) # Trst output only
-            self.form.scopeList.takeItem(3) # Test payload
+            self.form.scopeList.takeItem(5) # Test output only
+            self.form.scopeList.takeItem(4) # Test payload
+            self.form.scopeList.takeItem(3) # External IFC file
 
     def getStandardButtons(self):
 
@@ -814,6 +819,14 @@ class bimbots_panel:
                                 self.form.progressBar.setFormat("Sending data")
                                 self.form.progressBar.setValue(75)
                                 results = send_test_payload(provider_url,service_id)
+                            elif scopeitem.text() == "Choose IFC file":
+                                ret = QtGui.QFileDialog.getOpenFileName(None, "Choose an existing IFC file", None, "IFC files (*.ifc)")
+                                if ret:
+                                    file_path = ret[0]
+                                    if file_path:
+                                        self.form.progressBar.setFormat("Sending data")
+                                        self.form.progressBar.setValue(75)
+                                        results = send_ifc_payload(provider_url,service_id,file_path)
                             else:
                                 if FreeCAD.ActiveDocument:
                                     objectslist = []
@@ -863,6 +876,8 @@ class bimbots_panel:
                 self.form.textResults.setPlainText(results)
         else:
             FreeCAD.Console.PrintError("Error: No results obtained\n")
+            QtGui.QMessageBox.critical(None,"Empty response",
+                                       "The server didn't send a valid response. There can be many reasons to this, but the most likely is that the IFC file generated from your model wasn't accepted by the server. Try working with only a couple of selected objects first, to see if the service is responding correctly.")
 
     def fill_item(self, item, value, link=False):
         

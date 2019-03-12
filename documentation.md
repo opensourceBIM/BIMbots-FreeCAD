@@ -64,7 +64,7 @@ Functions
 :   Sends a test IFC file to the given service. Returns the json response as a dict
 
 `tostr(something)`
-:   
+:   a convenience function to unify py2/py3 conversion to string (py2 version)
 
 Classes
 -------

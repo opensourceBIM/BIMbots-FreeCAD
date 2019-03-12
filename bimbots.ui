@@ -479,6 +479,14 @@
         </item>
         <item>
          <property name="text">
+          <string>Choose IFC file</string>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Allows you to select  an existing IFC file to send&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string>Test payload</string>
          </property>
          <property name="toolTip">
