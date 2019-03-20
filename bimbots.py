@@ -29,7 +29,9 @@
 """This module provides tools to communicate with BIMbots services, and
 a FreeCAD GUI, that autoruns if this module is executed as a FreeCAD macro or
 simply imported from the FreeCAD Python console. If run from the command line,
-it prints a summary of available (and reachable) BIMbots services."""
+it prints a summary of available (and reachable) BIMbots services.
+
+See also the [GUI documentation](ui-documentation.md) for GUI usage inside FreeCAD"""
 
 from __future__ import print_function # this code is compatible with python 2 and 3
 
@@ -53,7 +55,9 @@ else:
         "a convenience function to unify py2/py3 conversion to string (py2 version)"
         return str(something)
 
+
 #############   Configuration defaults
+
 
 # the following values are not written in the config file:
 CONFIG_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens - TODO use something nicer for windows? Use FreeCAD?
@@ -69,7 +73,6 @@ CLIENT_URL = "https://github.com/opensourceBIM/BIMbots-FreeCAD"
 CLIENT_ICON = "https://www.freecadweb.org/images/logo.png" #bimserver doesn't seem to like this image... Why, OH WHY?
 
 # detect if we're running inside FreeCAD
-run_as_macro = False
 try:
     import FreeCAD
 except:
@@ -78,7 +81,6 @@ else:
     if FreeCAD.GuiUp:
         import FreeCADGui
         from PySide import QtCore,QtGui
-        run_as_macro = True
 
 
 #############   Config file management
@@ -252,7 +254,7 @@ def delete_custom_provider(list_url):
         print("Error: Provider not found in config:",list_url)
 
 
-#############   Generic BIMbots interface
+#############   Generic BIMbots interface - doesn't depend on FreeCAD
 
 
 def get_service_providers(autodiscover=True,url=None):
@@ -475,7 +477,7 @@ def send_ifc_payload(provider_url,service_id,file_path):
 def send_test_payload(provider_url,service_id):
 
     "Sends a test IFC file to the given service. Returns the json response as a dict"
-    
+
     payload_file = os.path.join(os.path.dirname(__file__),"test payload.ifc")
     return send_ifc_payload(provider_url,service_id,payload_file)
 
@@ -559,10 +561,11 @@ class bimbots_panel:
 
         # connect clickable links
         self.form.treeResults.itemDoubleClicked.connect(self.on_click_results)
+        self.form.labelHelp.linkActivated.connect(self.on_click_help)
 
         # perform initial scan after the UI has been fully drawn
         QtCore.QTimer.singleShot(0,self.on_scan)
-        
+
         # remove test items if needed
         if not DEBUG:
             self.form.scopeList.takeItem(5) # Test output only
@@ -588,7 +591,6 @@ class bimbots_panel:
         FreeCADGui.Control.closeDialog()
         if FreeCAD.ActiveDocument:
             FreeCAD.ActiveDocument.recompute()
-
 
     def on_scan(self):
 
@@ -690,6 +692,21 @@ class bimbots_panel:
                 # this is a provider
                 if 'custom' in json.loads(serviceitem.data(0,QtCore.Qt.UserRole)):
                     self.form.buttonRemoveService.setEnabled(True)
+
+    def on_click_help(self,arg=None):
+
+        "Opens a browser to show the BIMbots help page. Arg not used. Returns nothing"
+
+        url = "https://github.com/opensourceBIM/BIMbots-FreeCAD/blob/master/doc/ui-documentation.md"
+        err = "Error: Unable to launch web browser. Please paste the following URL in your web browser: " + url
+        try:
+            import webbrowser
+        except:
+            print(err)
+        else:
+            res = webbrowser.open(url)
+            if not res:
+                print(err)
 
     def validate_fields(self,arg=None):
 
@@ -880,7 +897,7 @@ class bimbots_panel:
                                        "The server didn't send a valid response. There can be many reasons to this, but the most likely is that the IFC file generated from your model wasn't accepted by the server. Try working with only a couple of selected objects first, to see if the service is responding correctly.")
 
     def fill_item(self, item, value, link=False):
-        
+
         "fills a QtreeWidget or QtreeWidgetItem with a dict, list or text/number value. If link is true, paints in link color. Returns nothing"
 
         # adapted from https://stackoverflow.com/questions/21805047/qtreewidget-to-mirror-python-dictionary
@@ -920,9 +937,9 @@ class bimbots_panel:
                 item.setToolTip(1,str(link)+tostr(value))
 
     def on_click_results(self,item,column):
-        
+
         "Selects associated objects in document when an item is clicked. Returns nothing"
-        
+
         tosel = []
         tooltip = item.toolTip(column)
         if FreeCAD.ActiveDocument:
@@ -952,9 +969,9 @@ class bimbots_panel:
                 FreeCADGui.Selection.addSelection(obj)
 
     def save_ifc(self,objectslist):
-        
+
         "Saves an IFC file with the given objects to a temporary location. Returns the file path."
-        
+
         tf = tempfile.mkstemp(suffix=".ifc")[1]
         print("Saving temporary IFC file at",tf)
         import importIFC
@@ -983,14 +1000,6 @@ class bimbots_panel:
         settings.SetBool("checkAutoDiscover",self.form.checkAutoDiscover.isChecked())
         settings.SetBool("checkShowUnreachable",self.form.checkShowUnreachable.isChecked())
 
-
-
-#############   If we're inside FreeCAD, show the GUI
-
-
-if run_as_macro:
-    # We are running inside FreeCAD: show the UI
-    launch_ui()
 
 
 #############   If running from the command line, print a list of available services

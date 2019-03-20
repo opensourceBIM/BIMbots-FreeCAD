@@ -5,6 +5,8 @@ a FreeCAD GUI, that autoruns if this module is executed as a FreeCAD macro or
 simply imported from the FreeCAD Python console. If run from the command line,
 it prints a summary of available (and reachable) BIMbots services.
 
+See also the [GUI documentation](ui-documentation.md) for GUI usage inside FreeCAD
+
 Functions
 ---------
 
@@ -98,6 +100,9 @@ Classes
 
     `on_cancel(self)`
     :   Cancels the current operation by setting the running flag to False. Returns nothing
+
+    `on_click_help(self, arg=None)`
+    :   Opens a browser to show the BIMbots help page. Arg not used. Returns nothing
 
     `on_click_results(self, item, column)`
     :   Selects associated objects in document when an item is clicked. Returns nothing

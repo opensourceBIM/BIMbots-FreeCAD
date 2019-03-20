@@ -92,5 +92,9 @@ This plugin is meant to be easily installable via FreeCAD's Add-ons manager. Whi
 * Unzip the downloaded file. It will contain a "BIMbots-FreeCAD-master" folder. Rename it if you wish.
 * Move the "BIMBots-FreeCAD-master" folder inside your FreeCAD Mod directory. The location of your FreeCAD Mod directory  is given when entering `App.getUserAppDataDir()+"Mod"` in the FreeCAD python console.
 * Restart FreeCAD if already running
-* In the FreeCAD python console, type: `import bimbots`
+* In the FreeCAD python console, type: 
+```
+import bimbots
+bimbots.launch_ui()
+```
 * If you know your way with Git, you can also simply clone this repo inside the FreeCAD Mod directory.
