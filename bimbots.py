@@ -481,6 +481,13 @@ def send_test_payload(provider_url,service_id):
     payload_file = os.path.join(os.path.dirname(__file__),"test payload.ifc")
     return send_ifc_payload(provider_url,service_id,payload_file)
 
+def get_plugin_info():
+
+    "Returns a dict with info about this plugin, usable for ex. by FreeCAD"
+
+    return {'Pixmap'  : os.path.join(os.path.dirname(__file__),"icons","BIM-Bots-validationchecker.png"),
+            'MenuText': "BIMBots",
+            'ToolTip' : "Launches the BIMBots tool"}
 
 
 #############   FreeCAD UI panel

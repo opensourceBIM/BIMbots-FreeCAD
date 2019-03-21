@@ -28,6 +28,9 @@ Functions
 `get_custom_providers()`
 :   Returns custom providers from the config file
 
+`get_plugin_info()`
+:   Returns a dict with info about this plugin, usable for ex. by FreeCAD
+
 `get_service_config(provider_url, service_id)`
 :   Returns the service associated with the given provider url and service id if it has already been authenticated
 
