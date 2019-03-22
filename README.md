@@ -98,4 +98,4 @@ import bimbots
 bimbots.launch_ui()
 ```
 * If you know your way with Git, you can also simply clone this repo inside the FreeCAD Mod directory.
-* If you have the **BIM Workbench** installed (via the FreeCAD add-ons manager, found under menu Tools), and the BIMBots is installed in the Mod directory as explained above, the BIM workbench auto-destects it and you will have a BIMBots entry found under menu Utils, to lauch the plugin.
+* If you have the **BIM Workbench** installed (via the FreeCAD add-ons manager, found under menu Tools), and the BIMBots is installed in the Mod directory as explained above, the BIM workbench will auto-detect it and you will have a BIMBots entry found under menu Utils, to lauch the plugin.
