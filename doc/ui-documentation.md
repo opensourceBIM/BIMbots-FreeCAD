@@ -26,9 +26,7 @@ The list of servers and their available services will be shown on the BIMBots pa
 
 ![server info](images/bimbots-ui-02.jpg)
 
-
-
-#### Managing servers and services
+### Managing servers and services
 
 Pressing the **Rescan services** button will open a sub-panel showing a couple of options:
 
@@ -41,8 +39,6 @@ Pressing the **Rescan services** button will open a sub-panel showing a couple o
 * **Scan**: Updates the services list according to the above criteria
 * **Cancel**: Closes this sub-panel
 
-
-
 You can add custom BIMServer instances, or any other BIMBots provider that you have access to and know the URL, by pressing the **Add custom service provider** button, which opens another sub-panel:
 
 <img align="left" src="images/bimbots-ui-04.jpg">
@@ -52,23 +48,17 @@ You can add custom BIMServer instances, or any other BIMBots provider that you h
 * **Add**: Adds the new server and rescans
 * **Cancel**: Closes this sub-panel
 
-
-
 You can remove any custom server you added this way by selecting it, then pressing the **Remove custom service provider** button. That button will only be enabled if you select a custom service provider. Service providers that were automatically added through the "Auto-discover new services" above cannot be removed. 
 
-<img align="left" src="images/bimbots-ui-05.jpg">
+![](images/bimbots-ui-05.jpg)
 
-
-
-#### Authenticating
+### Authenticating
 
 Before using a BIMBots service, you need to **authenticate** with that service. For that, you need to already have a user account on the server that provides the service. Authentication needs to happen only once. FreeCAD will remember authenticated services, and mark them with a green icon in the services list.
 
 To authenticate with a service, select it and press the **Authenticate** button. A sub-panel will open, and, simultaneously, your web browser will open and show the authentication page of the service:
 
 ![](images/bimbots-ui-07.jpg)
-
-
 
 The "Select service configuration" drop-down list should contain at least one entry (usually only one). If it doesn't, and you are unable to authenticate, you might need to enable  this service from the same screen, under menu **User settings -> Internal services**.
 
@@ -86,10 +76,10 @@ These two values need to be copied and pasted back into FreeCAD, into the sub-pa
 * **Cancel**: Cancels the operation and closes this sub-panel
 
 You can authenticate again with an already authenticated service, any number of times, by pressing the Authenticate button again.
+ 
 
 
-
-#### Running services
+### Running services
 
 Once you have authenticated with a service, you can run it on a FreeCAD model. You need to have a model already opened in FreeCAD, as the BIMBots plugin will act on the active document.
 
@@ -105,14 +95,15 @@ To run a service, select an authenticated service, and one of the three options 
 * **All visible objects**: Will send all objects currently visible in the 3D view. This is a quick way to check your whole model without having to care about a proper model structure.
 * **Selected objects**: This is usually the preferred option. If you select one or more container objects, such as groups, building parts, storeys, buildings or sites, all their contents will be added as well. If you are using a proper IFC-based model structure, you can usually only select the base site or building, and all the model contained in it will be sent together.
 * **Run service**: Saves the model objects obtained by the selection method above to a temporary IFC file, and sends this file to the selected service. This button will only be enabled if both an authenticated service and a selection method are highlighted.
+ 
+  
+   
+   
+### Reading service reports
 
-
-
-#### Reading service reports
+![](images/bimbots-ui-11.jpg)
 
 If all went well, after a little time (depending on the size of your model), the plugin will receive a report and open a new panel to display the results:
-
-<img align="left" src="images/bimbots-ui-11.jpg">
 
 The data contained in the report depends on the BIMBots service. If the report is made of JSON or Text data, a new panel opens to display its contents. Blue entries can be double-clicked, and the according object will be selected in the FreeCAD document. If an IFC type is double-clicked, such as IfcWall, all objects of that type found in the FreeCAD document will be selected.
 
@@ -120,9 +111,7 @@ If the report is a BCF file, that file is stored on your computer, and notifies 
 
 The **Run another service** button will close the report panel and go back to the previous screen.
 
-
-
-#### Troubleshooting
+### Troubleshooting
 
 * **Cannot authenticate**: If the server fails to give a token and service address, the most likely cause is that the service you are requesting wasn't enabled for your user. Services installed on a BIMServer need to be enabled by each user wishing to use them. That can be done in the same web page, under menu **User settings -> Internal services**.
 
