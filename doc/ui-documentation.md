@@ -77,7 +77,9 @@ These two values need to be copied and pasted back into FreeCAD, into the sub-pa
 
 You can authenticate again with an already authenticated service, any number of times, by pressing the Authenticate button again.
  
-
+---
+---
+---
 
 ### Running services
 
@@ -96,8 +98,12 @@ To run a service, select an authenticated service, and one of the three options 
 * **Selected objects**: This is usually the preferred option. If you select one or more container objects, such as groups, building parts, storeys, buildings or sites, all their contents will be added as well. If you are using a proper IFC-based model structure, you can usually only select the base site or building, and all the model contained in it will be sent together.
 * **Run service**: Saves the model objects obtained by the selection method above to a temporary IFC file, and sends this file to the selected service. This button will only be enabled if both an authenticated service and a selection method are highlighted.
  
-  
-   
+
+---
+---
+---  
+---
+---
    
 ### Reading service reports
 
