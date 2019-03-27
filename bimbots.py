@@ -60,7 +60,9 @@ else:
 
 
 # the following values are not written in the config file:
-CONFIG_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens - TODO use something nicer for windows? Use FreeCAD?
+CONFIG_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens
+if sys.platform.lower().startswith("win"):
+    CONFIG_FILE = os.path.join(os.environ['APPDATA'], 'BIMbots.cfg') # use something nicer on windows
 DEBUG = True # If True, debug messages are printed, and test items are added to the UI. If not, everything happens (and fails) silently
 DECAMELIZE = True # if True, variable names appear de-camelized in results
 
