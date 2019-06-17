@@ -64,6 +64,7 @@ This returns a dictionary containing the different service providers found (both
 ```
 [{u'listUrl': u'https://ifcanalysis.bimserver.services/servicelist', u'name': u'ifcanalyses'}, {u'listUrl': u'http://localhost:8080/servicelist', u'name': u'Default localdev BIMserver', u'description': u'Default localdev BIMserver'}, {u'listUrl': u'http://localhost:8081/servicelist', u'name': u'2nd localdev BIMserver', u'description': u'2nd localdev BIMserver'}, {u'listUrl': u'http://localhost:8082/servicelist', u'name': u'Default JAR runner', u'description': u'Default JAR runner'}, {u'listUrl': u'https://thisisanexperimentalserver.com/servicelist', u'name': u'Experimentalserver.com', u'description': u'Experimental BIMserver'}]
 ```
+Then, using one of the "listUrl" above:
 
 `>>> bimbots.get_services('http://localhost:8082/servicelist')`
 
@@ -72,5 +73,22 @@ This returns a list of services offered by the given server (adding the /service
 ```
 [{u'inputs': [u'IFC_STEP_2X3TC1'], u'resourceUrl': u'http://localhost:8082/services', u'description': u'IFC Analytics Service', u'outputs': [u'IFC_ANALYTICS_JSON_1_0'], u'providerIcon': u'/img/bimserver.png', u'provider': u"Yorik's test BIMserver", u'oauth': {u'tokenUrl': u'http://localhost:8082/oauth/access', u'registerUrl': u'http://localhost:8082/oauth/register', u'authorizationUrl': u'http://localhost:8082/oauth/authorize'}, u'id': 2097206, u'name': u'IFC Analytics Service'}, {u'inputs': [u'IFC_STEP_2X3TC1'], u'resourceUrl': u'http://localhost:8082/services', u'description': u'BIMserver plugin that provides an analysis of a model and and outputs it into json', u'outputs': [u'UNSTRUCTURED_UTF8_TEXT_1_0'], u'providerIcon': u'/img/bimserver.png', u'provider': u"Yorik's test BIMserver", u'oauth': {u'tokenUrl': u'http://localhost:8082/oauth/access', u'registerUrl': u'http://localhost:8082/oauth/register', u'authorizationUrl': u'http://localhost:8082/oauth/authorize'}, u'id': 2162742, u'name': u'Simple Analyses Service'}, {u'inputs': [u'IFC_STEP_2X3TC1'], u'resourceUrl': u'http://localhost:8082/services', u'description': u'BIMserver plugin that provides a detailed analysis of a model and outputs it into json', u'outputs': [u'UNSTRUCTURED_UTF8_TEXT_1_0'], u'providerIcon': u'/img/bimserver.png', u'provider': u"Yorik's test BIMserver", u'oauth': {u'tokenUrl': u'http://localhost:8082/oauth/access', u'registerUrl': u'http://localhost:8082/oauth/register', u'authorizationUrl': u'http://localhost:8082/oauth/authorize'}, u'id': 2228278, u'name': u'Detailed Analyses Service'}]
 ```
+The next step, if you want to use a service, is to authenticate with it. This is done in two steps. Step 1 is done using one of the "registeUrl" above:
+
+`>>> bimbots.authenticate_step_1('http://localhost:8082/oauth/register')`
+
+This will return a dict with keys that identify our BIMbots plugin on the given server.
+
+`>>> bimbots.authenticate_step_2('http://localhost:8082/oauth/authorize', 'freecad', 'Simple Analyses Service')`
+
+Client_id and service_name will be returned by the step 1 above. This will pop up a browser window, which will access the given BIMbots server, on which you must have a valid user already logged in. You will land on a page that asks you to confirm. Upon confirmation, you will receive a token and an url. Save them to your config file with:
+
+`>>> bimbots.save_authentication('http://localhost:8082/', 2097206, 'Simple Analyses Service', service_url, token)`
+
+The first URL is used to bind this service to a given server in the config file. You can use either the server name, as I did above, or the /servicelist URL obtained by the first step above in these instructions. service_id, service_name are obtained in step 1 above, and service_url, token are obtained via the web interface opened in step 2.
+
+After you properly registered the service, you can now try sending it a test file:
+
+`send_test_payload('http://localhost:8082/', 2097206)`
 
 There are more functions to interact with services. Check the [API documentation](doc/documentation.md) for the full list of available functions.
