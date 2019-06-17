@@ -35,7 +35,9 @@ See also the [GUI documentation](ui-documentation.md) for GUI usage inside FreeC
 
 from __future__ import print_function # this code is compatible with python 2 and 3
 
-import os, sys, tempfile # builtin python modules
+import os
+import sys
+import tempfile
 import requests
 import json
 
@@ -45,14 +47,14 @@ if sys.version_info.major < 3:
     import urllib
     from urllib import urlencode
     def tostr(something):
-        "a convenience function to unify py2/py3 conversion to string (py3 version)"
+        "a convenience function to unify py2/py3 conversion to string"
         return unicode(something)
 else:
     # Python 3
     import urllib.parse
     from urllib.parse import urlencode
     def tostr(something):
-        "a convenience function to unify py2/py3 conversion to string (py2 version)"
+        "a convenience function to unify py2/py3 conversion to string"
         return str(something)
 
 
@@ -78,11 +80,14 @@ CLIENT_ICON = "https://www.freecadweb.org/images/logo.png" #bimserver doesn't se
 try:
     import FreeCAD
 except:
-    pass
+    def translate(ctx,txt):
+        return txt
 else:
     if FreeCAD.GuiUp:
         import FreeCADGui
-        from PySide import QtCore,QtGui
+        from PySide import QtCore
+        from PySide import QtGui
+        from DraftTools import translate
 
 
 #############   Config file management
@@ -512,6 +517,9 @@ class bimbots_panel:
         # this is to be able to cancel running progress
         self.running = True
 
+        # locate and load available translations
+        FreeCADGui.addLanguagePath(os.path.join(os.path.dirname(__file__),"translations"))
+
         # load the ui file. Widgets re automatically named from the ui file
         self.form = FreeCADGui.PySideUic.loadUi(os.path.join(os.path.dirname(__file__),"bimbots.ui"))
 
@@ -595,7 +603,7 @@ class bimbots_panel:
 
     def reject(self):
 
-        "Called when the \"Close\" button of the task dialog is pressed, closes the panel. Returns nothing"
+        """Called when the "Close" button of the task dialog is pressed, closes the panel. Returns nothing"""
 
         FreeCADGui.Control.closeDialog()
         if FreeCAD.ActiveDocument:
@@ -611,7 +619,7 @@ class bimbots_panel:
         # setup the progress bar
         self.running = True
         self.form.groupProgress.show()
-        self.form.progressBar.setFormat("Getting services")
+        self.form.progressBar.setFormat(translate("BIMBots","Getting services"))
 
         # query services
         providers = get_service_providers(autodiscover=self.form.checkAutoDiscover.isChecked())
@@ -628,9 +636,9 @@ class bimbots_panel:
                 if provider['description']:
                     top.setToolTip(0,provider['description'])
             if "custom" in provider:
-                top.setToolTip(0,top.toolTip(0)+" (saved)")
+                top.setToolTip(0,top.toolTip(0)+" ("+translate("BIMBots","saved")+")")
             else:
-                top.setToolTip(0,top.toolTip(0)+" (autodiscovered)")
+                top.setToolTip(0,top.toolTip(0)+" ("+translate("BIMBots","autodiscovered")+")")
             if self.running:
                 services = get_services(provider['listUrl'])
                 if services:
@@ -652,7 +660,7 @@ class bimbots_panel:
                         authenticated = get_service_config(provider['listUrl'],service['id'])
                         if authenticated:
                             child.setIcon(0,QtGui.QIcon(":/icons/button_valid.svg")) # FreeCAD builtin icon
-                            child.setToolTip(0,child.toolTip(0)+"\n"+"Authenticated")
+                            child.setToolTip(0,child.toolTip(0)+"\n"+translate("BIMBots","Authenticated"))
                     top.setExpanded(True)
                 else:
                     if self.form.checkShowUnreachable.isChecked():
@@ -663,7 +671,7 @@ class bimbots_panel:
                         top.setIcon(0,QtGui.QIcon(":/icons/button_invalid.svg"))
                         palette = QtGui.QApplication.palette()
                         top.setForeground(0,palette.brush(palette.Disabled,palette.Text))
-                        top.setToolTip(0,top.toolTip(0)+" - Unreachable")
+                        top.setToolTip(0,top.toolTip(0)+" - "+translate("BIMBots","Unreachable"))
                     else:
                         # remove it from the list
                         self.form.servicesList.takeTopLevelItem(self.form.servicesList.topLevelItemCount()-1)
@@ -687,14 +695,14 @@ class bimbots_panel:
         serviceitem = self.form.servicesList.currentItem()
         scopeitem = self.form.scopeList.currentItem()
         if scopeitem:
-            if scopeitem.text() == "Test output only":
+            if scopeitem.text() == translate("BIMBots","Test output only"):
                 # this is a test item that doesn't send data toany service
                 self.form.buttonRun.setEnabled(True)
         if serviceitem:
             if serviceitem.parent():
                 # this is a service
                 self.form.buttonAuthenticate.setEnabled(True)
-                if "Authenticated" in serviceitem.toolTip(0):
+                if translate("BIMBots","Authenticated") in serviceitem.toolTip(0):
                     if scopeitem:
                         self.form.buttonRun.setEnabled(True)
             else:
@@ -754,8 +762,8 @@ class bimbots_panel:
                 data = json.loads(serviceitem.data(0,QtCore.Qt.UserRole))
                 if 'custom' in data:
                     reply = QtGui.QMessageBox.question(None,
-                                                       "Removal warning",
-                                                       "Remove provider \""+name+"\"? This cannot be undone.",
+                                                       translate("BIMBots","Removal warning"),
+                                                       translate("BIMBots","Remove provider")+" \""+name+"\"? "+translate("BIMBots","This cannot be undone."),
                                                        QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
                                                        QtGui.QMessageBox.No)
                     if reply == QtGui.QMessageBox.Yes:
@@ -784,7 +792,7 @@ class bimbots_panel:
                             step2 = authenticate_step_2(auth_url,client_id,service_name)
                             if step2 == True:
                                 return
-                            msg = "Unable to open a web browser. Please paste the following URL in your web browser: " + step2
+                            msg = translate("BIMBots","Unable to open a web browser. Please paste the following URL in your web browser")+": " + step2
                             QtGui.QMessageBox.information(None,"Error",msg)
         print("Error: Unable to start authentication!")
 
@@ -828,46 +836,46 @@ class bimbots_panel:
             elif serviceitem:
                 if serviceitem.parent():
                     # this is a service
-                    if "Authenticated" in serviceitem.toolTip(0):
+                    if translate("BIMBots","Authenticated") in serviceitem.toolTip(0):
                         if scopeitem:
                             # we have scope and authenticated service: let's run!
                             self.running = True
                             # setup the progress bar
                             self.form.groupProgress.show()
-                            self.form.progressBar.setFormat("Preparing")
+                            self.form.progressBar.setFormat(translate("BIMBots","Preparing"))
                             self.form.progressBar.setValue(25)
                             provider_data = json.loads(serviceitem.parent().data(0,QtCore.Qt.UserRole))
                             provider_url = provider_data['listUrl']
                             service_data = json.loads(serviceitem.data(0,QtCore.Qt.UserRole))
                             service_id = service_data['id']
-                            if scopeitem.text() == "Test payload":
+                            if scopeitem.text() == translate("BIMBots","Test payload"):
                                 # no need to check for current document if running a test payload
-                                self.form.progressBar.setFormat("Sending data")
+                                self.form.progressBar.setFormat(translate("BIMBots","Sending data"))
                                 self.form.progressBar.setValue(75)
                                 results = send_test_payload(provider_url,service_id)
-                            elif scopeitem.text() == "Choose IFC file":
-                                ret = QtGui.QFileDialog.getOpenFileName(None, "Choose an existing IFC file", None, "IFC files (*.ifc)")
+                            elif scopeitem.text() == translate("BIMBots","Choose IFC file"):
+                                ret = QtGui.QFileDialog.getOpenFileName(None, translate("BIMBots","Choose an existing IFC file"), None, translate("BIMBots","IFC files (*.ifc)"))
                                 if ret:
                                     file_path = ret[0]
                                     if file_path:
-                                        self.form.progressBar.setFormat("Sending data")
+                                        self.form.progressBar.setFormat(translate("BIMBots","Sending data"))
                                         self.form.progressBar.setValue(75)
                                         results = send_ifc_payload(provider_url,service_id,file_path)
                             else:
                                 if FreeCAD.ActiveDocument:
                                     objectslist = []
-                                    self.form.progressBar.setFormat("Saving IFC file")
+                                    self.form.progressBar.setFormat(translate("BIMBots","Saving IFC file"))
                                     self.form.progressBar.setValue(25)
-                                    if scopeitem.text() == "Selected objects":
+                                    if scopeitem.text() == translate("BIMBots","Selected objects"):
                                         objectslist = FreeCADGui.Selection.getSelection()
-                                    elif scopeitem.text() == "All visible objects":
+                                    elif scopeitem.text() == translate("BIMBots","All visible objects"):
                                         objectslist = [o for o in FreeCAD.ActiveDocument.Objects if o.ViewObject and hasattr(o.ViewObject,"Visibility") and o.ViewObject.Visibility]
                                     else:
                                         objectslist = FreeCAD.ActiveDocument.Objects
                                     if objectslist:
                                         file_path = self.save_ifc(objectslist)
                                         if file_path:
-                                            self.form.progressBar.setFormat("Sending data")
+                                            self.form.progressBar.setFormat(translate("BIMBots","Sending data"))
                                             self.form.progressBar.setValue(75)
                                             results = send_ifc_payload(provider_url,service_id,file_path)
 
@@ -893,17 +901,17 @@ class bimbots_panel:
                         f = open(zipfile,"wb")
                         f.write(results)
                         f.close()
-                        results = "BCF results saved as " + zipfile + ". BCF viewing is not yet implemented."
+                        results = translate("BIMBots","BCF results saved as:")+" " + zipfile + ". "+translate("BIMBots","BCF viewing is not yet implemented.")
                 if DEBUG:
-                    print("Results:",results)
+                    print(translate("BIMBots","Results")+":",results)
                 self.form.textResults.show()
                 self.form.treeResults.hide()
                 self.form.textResults.clear()
                 self.form.textResults.setPlainText(results)
         else:
-            FreeCAD.Console.PrintError("Error: No results obtained\n")
-            QtGui.QMessageBox.critical(None,"Empty response",
-                                       "The server didn't send a valid response. There can be many reasons to this, but the most likely is that the IFC file generated from your model wasn't accepted by the server. Try working with only a couple of selected objects first, to see if the service is responding correctly.")
+            FreeCAD.Console.PrintError(translate("BIMBots","Error: No results obtained")+"\n")
+            QtGui.QMessageBox.critical(None,translate("BIMBots","Empty response"),
+                                       translate("BIMBots","The server didn't send a valid response. There can be many reasons to this, but the most likely is that the IFC file generated from your model wasn't accepted by the server. Try working with only a couple of selected objects first, to see if the service is responding correctly."))
 
     def fill_item(self, item, value, link=False):
 
@@ -957,7 +965,11 @@ class bimbots_panel:
                     tooltip = tooltip.split("Link:")
                     if tooltip[0] == "uuid":
                         for obj in FreeCAD.ActiveDocument.Objects:
-                            if hasattr(obj,"IfcAttributes"):
+                            if hasattr(obj,"IfcData"): # FreeCAD 0.19
+                                if "IfcUID" in obj.IfcData.keys():
+                                    if str(obj.IfcData["IfcUID"]) == tooltip[1]:
+                                        tosel.append(obj)
+                            elif hasattr(obj,"IfcAttributes"): # FreeCAD 0.18
                                 if "IfcUID" in obj.IfcAttributes.keys():
                                     if str(obj.IfcAttributes["IfcUID"]) == tooltip[1]:
                                         tosel.append(obj)
@@ -969,7 +981,10 @@ class bimbots_panel:
                         if tooltip[1].lower().startswith("ifc"):
                             ifctype = tooltip[1][3:]
                             for obj in FreeCAD.ActiveDocument.Objects:
-                                if hasattr(obj,"IfcRole"):
+                                if hasattr(obj,"IfcType"): # FreeCAD 0.19
+                                    if obj.IfcType.lower().replace(" ","") == ifctype.lower():
+                                        tosel.append(obj)
+                                elif hasattr(obj,"IfcRole"): # FreeCAD 0.18
                                     if obj.IfcRole.lower().replace(" ","") == ifctype.lower():
                                         tosel.append(obj)
         if tosel:
