@@ -63,7 +63,7 @@ else:
 CONFIG_FILE = os.path.join(os.path.expanduser("~"),".BIMbots") # A file to store authentication tokens
 if sys.platform.lower().startswith("win"):
     CONFIG_FILE = os.path.join(os.environ['APPDATA'], 'BIMbots.cfg') # use something nicer on windows
-DEBUG = True # If True, debug messages are printed, and test items are added to the UI. If not, everything happens (and fails) silently
+DEBUG = False # If True, debug messages are printed, and test items are added to the UI. If not, everything happens (and fails) silently
 DECAMELIZE = True # if True, variable names appear de-camelized in results
 
 # the following values can be overwritten in the config file:
@@ -480,7 +480,7 @@ def send_test_payload(provider_url,service_id):
 
     "Sends a test IFC file to the given service. Returns the json response as a dict"
 
-    payload_file = os.path.join(os.path.dirname(__file__),"test payload.ifc")
+    payload_file = os.path.join(os.path.dirname(__file__),"testfiles","test payload.ifc")
     return send_ifc_payload(provider_url,service_id,payload_file)
 
 def get_plugin_info():
@@ -821,7 +821,7 @@ class bimbots_panel:
         if scopeitem:
             if scopeitem.text() == "Test output only":
                 # Test item - don't run any service, just show dummy results from file
-                payload_response = os.path.join(os.path.dirname(__file__),"test payload response.json")
+                payload_response = os.path.join(os.path.dirname(__file__),"testfiles","test payload response.json")
                 if os.path.exists(payload_response):
                     with open(payload_response) as json_file:
                         results = json.load(json_file)
