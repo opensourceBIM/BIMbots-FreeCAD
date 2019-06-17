@@ -50,6 +50,7 @@ Refer to the [documentation](doc/ui-documentation.md) for complete use instructi
 * Handle Context-Id (reuse an already sent model slot)
 * Handle asynchronous connection (don't wait and freeze the FreeCAD interface while data is being transmitted)
 * Implement display of BCF files in FreeCAD (in progess - Part of a [GSOC](https://forum.freecadweb.org/viewtopic.php?f=8&t=35465) project)
+* Enable translations
 
 #### Quick how-to use from Python
 
