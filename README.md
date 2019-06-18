@@ -8,7 +8,7 @@ A FreeCAD plugin to communicate with BIMbots services - http://bimbots.org/
 
 It allows you to upload a FreeCAD model or selected parts of a FreeCAD model to a BIMBots instance (usually a [BIMServer](http://bimserver.org/) with external services enabled), and perform different services and analyses on your model, and read the results in FreeCAD, usually under the form of a text report, or a BCF file (not yet supported - see below)
 
-This plugin is written in Python, it consists of a single all-in-one Python file, and a companion FreeCAD macro for convenience. It can be used in several ways. The main usage is to work inside [FreeCAD](http://www.freecadweb.org). It can be simply launched as a macro. If you have the [BIM Workbench](https://github.com/yorikvanhavre/BIM_Workbench) installed, the BIMBots plugin will be automatically detected at start and you will find "BIMBots" command under menu "Utils".
+This plugin is written in Python, it consists of a single all-in-one Python file, and a companion FreeCAD macro for convenience. It can be used in several ways. The main usage is to work inside [FreeCAD](http://www.freecadweb.org). It can be simply launched as a macro. If you have the [BIM Workbench](https://github.com/yorikvanhavre/BIM_Workbench) installed, the BIMBots plugin will be automatically detected at start and you will find a **BIMBots** command under menu **Utils**.
 
 The plugin can also be run directly from the terminal, in which case it prints a list of services it was able to reach, or imported as a python module (Python 2 and Python 3 compatible), in which case you have access to several utility functions to retrieve an communicate with BIMbots services, so this can also be used as a library to build your own BIMBots client.
 
@@ -20,7 +20,7 @@ In FreeCAD, just head to menu **Tools -> Addons Manager**, locate the BIMBots ad
 
 ### How to use
 
-Once installed, you will find a "BIMBots" entry under menu Macro -> Macros. If you have the [BIM Workbench](https://github.com/yorikvanhavre/BIM_Workbench) also installed, the BIMBots plugin will be automatically detected at start and you will find "BIMBots" command under menu "Utils".
+Once installed, you will find a **BIMBots** entry under menu **Macro -> Macros**. If you have the [BIM Workbench](https://github.com/yorikvanhavre/BIM_Workbench) also installed, the BIMBots plugin will be automatically detected at start and you will find a **BIMBots** command under menu **Utils**.
 
 Refer to the [documentation](doc/ui-documentation.md) for complete use instructions.
 
@@ -61,7 +61,13 @@ Refer to the [documentation](doc/ui-documentation.md) for complete use instructi
 This returns a dictionary containing the different service providers found (both auto-discovered and manually added via the FreeCAD UI):
 
 ```
-[{u'listUrl': u'https://ifcanalysis.bimserver.services/servicelist', u'name': u'ifcanalyses'}, {u'listUrl': u'http://localhost:8080/servicelist', u'name': u'Default localdev BIMserver', u'description': u'Default localdev BIMserver'}, {u'listUrl': u'http://localhost:8081/servicelist', u'name': u'2nd localdev BIMserver', u'description': u'2nd localdev BIMserver'}, {u'listUrl': u'http://localhost:8082/servicelist', u'name': u'Default JAR runner', u'description': u'Default JAR runner'}, {u'listUrl': u'https://thisisanexperimentalserver.com/servicelist', u'name': u'Experimentalserver.com', u'description': u'Experimental BIMserver'}]
+[{u'listUrl': u'https://ifcanalysis.bimserver.services/servicelist', u'name': u'ifcanalyses'}, 
+ {u'listUrl': u'http://localhost:8080/servicelist', u'name': u'Default localdev BIMserver', 
+  u'description': u'Default localdev BIMserver'}, {u'listUrl': u'http://localhost:8081/servicelist', 
+  u'name': u'2nd localdev BIMserver', u'description': u'2nd localdev BIMserver'}, 
+ {u'listUrl': u'http://localhost:8082/servicelist', u'name': u'Default JAR runner', 
+  u'description': u'Default JAR runner'}, {u'listUrl': u'https://thisisanexperimentalserver.com/servicelist', 
+  u'name': u'Experimentalserver.com', u'description': u'Experimental BIMserver'}]
 ```
 Then, using one of the "listUrl" above:
 
@@ -70,7 +76,21 @@ Then, using one of the "listUrl" above:
 This returns a list of services offered by the given server (adding the /servicelist is optional):
 
 ```
-[{u'inputs': [u'IFC_STEP_2X3TC1'], u'resourceUrl': u'http://localhost:8082/services', u'description': u'IFC Analytics Service', u'outputs': [u'IFC_ANALYTICS_JSON_1_0'], u'providerIcon': u'/img/bimserver.png', u'provider': u"Yorik's test BIMserver", u'oauth': {u'tokenUrl': u'http://localhost:8082/oauth/access', u'registerUrl': u'http://localhost:8082/oauth/register', u'authorizationUrl': u'http://localhost:8082/oauth/authorize'}, u'id': 2097206, u'name': u'IFC Analytics Service'}, {u'inputs': [u'IFC_STEP_2X3TC1'], u'resourceUrl': u'http://localhost:8082/services', u'description': u'BIMserver plugin that provides an analysis of a model and and outputs it into json', u'outputs': [u'UNSTRUCTURED_UTF8_TEXT_1_0'], u'providerIcon': u'/img/bimserver.png', u'provider': u"Yorik's test BIMserver", u'oauth': {u'tokenUrl': u'http://localhost:8082/oauth/access', u'registerUrl': u'http://localhost:8082/oauth/register', u'authorizationUrl': u'http://localhost:8082/oauth/authorize'}, u'id': 2162742, u'name': u'Simple Analyses Service'}, {u'inputs': [u'IFC_STEP_2X3TC1'], u'resourceUrl': u'http://localhost:8082/services', u'description': u'BIMserver plugin that provides a detailed analysis of a model and outputs it into json', u'outputs': [u'UNSTRUCTURED_UTF8_TEXT_1_0'], u'providerIcon': u'/img/bimserver.png', u'provider': u"Yorik's test BIMserver", u'oauth': {u'tokenUrl': u'http://localhost:8082/oauth/access', u'registerUrl': u'http://localhost:8082/oauth/register', u'authorizationUrl': u'http://localhost:8082/oauth/authorize'}, u'id': 2228278, u'name': u'Detailed Analyses Service'}]
+[{u'inputs': [u'IFC_STEP_2X3TC1'], u'resourceUrl': u'http://localhost:8082/services', 
+  u'description': u'IFC Analytics Service', u'outputs': [u'IFC_ANALYTICS_JSON_1_0'], 
+  u'providerIcon': u'/img/bimserver.png', u'provider': u"Yorik's test BIMserver", 
+  u'oauth': {u'tokenUrl': u'http://localhost:8082/oauth/access', 
+             u'registerUrl': u'http://localhost:8082/oauth/register', 
+             u'authorizationUrl': u'http://localhost:8082/oauth/authorize'}, 
+  u'id': 2097206, u'name': u'IFC Analytics Service'}, 
+ {u'inputs': [u'IFC_STEP_2X3TC1'], u'resourceUrl': u'http://localhost:8082/services', 
+  u'description': u'BIMserver plugin that provides an analysis of a model and and outputs it into json', 
+  u'outputs': [u'UNSTRUCTURED_UTF8_TEXT_1_0'], u'providerIcon': u'/img/bimserver.png', 
+  u'provider': u"Yorik's test BIMserver", 
+  u'oauth': {u'tokenUrl': u'http://localhost:8082/oauth/access', 
+             u'registerUrl': u'http://localhost:8082/oauth/register', 
+             u'authorizationUrl': u'http://localhost:8082/oauth/authorize'}, 
+  u'id': 2162742, u'name': u'Simple Analyses Service'}]
 ```
 The next step, if you want to use a service, is to authenticate with it. This is done in two steps. Step 1 is done using one of the "registeUrl" above:
 
