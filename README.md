@@ -1,6 +1,8 @@
 # BIMbots-FreeCAD
 A FreeCAD plugin to communicate with BIMbots services - http://bimbots.org/
 
+**Warning - the BIMbots service has been retired and this addon is now obsolete**
+
 ![](doc/images/bimbots-ui-01.jpg)
 
 This FreeCAD plugin allows a user to: 
